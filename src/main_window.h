@@ -1,0 +1,48 @@
+#ifndef MAIN_WINDOW_H
+#define MAIN_WINDOW_H
+
+#define GL_SILENCE_DEPRECATION
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
+#include <ImGui/imgui.h>
+
+#define MULTIVIEWPORT
+
+class MainWindow {
+
+    // constructor
+public:
+    MainWindow();
+    ~MainWindow();
+
+    // main functions
+private:
+    GLFWwindow* window = nullptr;
+    bool Init();
+    void Run();
+    void Destroy();
+    bool isReady = false;
+
+    // sub functions
+private:
+    void CreateImGuiComponents();
+    void HandleUserInput();
+
+    // constants
+private:
+    const unsigned int SCR_WIDTH = 1000;
+    const unsigned int SCR_HEIGHT = 800;
+
+    const ImGuiWindowFlags flag = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
+    const ImGuiWindowFlags topFlag = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+
+    // variables
+private:
+    bool isSettingPageOpened = false;
+
+    float sliderFloat = 0;
+    int sliderInt = 0;
+};
+
+#endif // !MAIN_WINDOW_H

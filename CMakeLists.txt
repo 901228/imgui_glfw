@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(imgui_opengl)
+project(imgui_test)
 set(SRC_DIR ${PROJECT_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(LIB_DIR_D ${PROJECT_SOURCE_DIR}/lib/Debug/lib)
