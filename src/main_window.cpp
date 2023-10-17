@@ -5,6 +5,8 @@
 #include <ImGui/imgui_impl_glfw.h>
 #include <ImGui/imgui_impl_opengl3.h>
 
+#include <ImGui/imspinner.h>
+
 #include "imgui_components/imgui_opengl.h"
 
 MainWindow::MainWindow() {
@@ -218,6 +220,17 @@ void MainWindow::CreateMainView() {
                 }
                 ImGui::EndTabItem();
             }
+
+            if (ImGui::BeginTabItem("ImSpinner")) {
+
+                if (ImGui::BeginChild("ImSpinner child")) {
+
+                    ImSpinner::SpinnerCamera("spinner", 5 * sliderInt2, sliderInt2, [](int i) { return ImColor::HSV(i * 0.25f, 0.8f, 0.8f); });
+
+                    ImGui::EndChild();
+                }
+                ImGui::EndTabItem();
+            }
             ImGui::EndTabBar();
         }
         ImGui::End();
@@ -247,11 +260,18 @@ void MainWindow::CreateControlPanel() {
             }
 
             ImGui::NewLine();
-            const char* text2 = "sliderInt";
+            const char* text2 = "sliderInt1";
             ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize(text2).x) * 0.5f);
             ImGui::Text(text2);
             ImGui::PushItemWidth(-1);
-            ImGui::SliderInt("sliderInt", &sliderInt, 1, 20);
+            ImGui::SliderInt("sliderInt1", &sliderInt1, 20, 500);
+
+            ImGui::NewLine();
+            const char* text3 = "sliderInt2";
+            ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize(text3).x) * 0.5f);
+            ImGui::Text(text3);
+            ImGui::PushItemWidth(-1);
+            ImGui::SliderInt("sliderInt2", &sliderInt2, 10, 100);
         }
         ImGui::End();
     }

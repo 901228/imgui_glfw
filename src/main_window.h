@@ -55,7 +55,8 @@ private:
     bool isSettingPageOpened = false;
 
     float sliderFloat = 0;
-    int sliderInt = 0;
+    int sliderInt1 = 20;
+    int sliderInt2 = 10;
 };
 
 #endif // !MAIN_WINDOW_H
