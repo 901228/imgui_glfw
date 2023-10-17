@@ -152,20 +152,30 @@ void MainWindow::Destroy() {
 void MainWindow::CreateImGuiComponents() {
 
 #ifdef MULTIVIEWPORT
-    ImVec2 window_pos{ ImGui::GetMainViewport()->Pos };
+    window_pos = { ImGui::GetMainViewport()->Pos };
 #else
-    ImVec2 window_pos{ 0, 0 };
+    window_pos = { 0, 0 };
 #endif
 
-    float main_width = 760;
-    float main_height = SCR_HEIGHT;
-    float menubar_offsetY = 20;
+    CreateMenuBar();
+    CreateMainView();
+    CreateControlPanel();
+    CreateSettingPage();
+}
 
-    // menu bar
+void MainWindow::HandleUserInput() {
+
+    ImVec2 pos = ImGui::GetMousePos();
+
+    //TODO: handle user inputs
+}
+
+void MainWindow::CreateMenuBar() {
+
     if (ImGui::BeginMainMenuBar()) {
 
         menubar_offsetY = ImGui::GetWindowHeight();
-        main_height -= menubar_offsetY;
+        main_height = SCR_HEIGHT - menubar_offsetY;
 
         if (ImGui::MenuItem("Settings")) {
 
@@ -175,6 +185,9 @@ void MainWindow::CreateImGuiComponents() {
 
         ImGui::EndMainMenuBar();
     }
+}
+
+void MainWindow::CreateMainView() {
 
     if (ImGui::BeginOpenGL("OpenGL", 0, flag)) {
 
@@ -197,6 +210,9 @@ void MainWindow::CreateImGuiComponents() {
 
         ImGui::EndOpenGL();
     }
+}
+
+void MainWindow::CreateControlPanel() {
 
     if (ImGui::Begin("controls", 0, flag)) {
 
@@ -227,6 +243,9 @@ void MainWindow::CreateImGuiComponents() {
         }
         ImGui::End();
     }
+}
+
+void MainWindow::CreateSettingPage() {
 
     if (isSettingPageOpened && ImGui::Begin("Settings Page", &isSettingPageOpened, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize)) {
 
@@ -234,11 +253,4 @@ void MainWindow::CreateImGuiComponents() {
 
         ImGui::End();
     }
-}
-
-void MainWindow::HandleUserInput() {
-
-    ImVec2 pos = ImGui::GetMousePos();
-
-    //TODO: handle user inputs
 }

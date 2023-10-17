@@ -29,6 +29,11 @@ private:
     void CreateImGuiComponents();
     void HandleUserInput();
 
+    void CreateMenuBar();
+    void CreateMainView();
+    void CreateControlPanel();
+    void CreateSettingPage();
+
     // constants
 private:
     const unsigned int SCR_WIDTH = 1000;
@@ -36,6 +41,14 @@ private:
 
     const ImGuiWindowFlags flag = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
     const ImGuiWindowFlags topFlag = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+
+    // variables for layout
+private:
+    float menubar_offsetY = 20;
+    float main_width = 760;
+    float main_height = SCR_HEIGHT;
+
+    ImVec2 window_pos{ 0, 0 };
 
     // variables
 private:
