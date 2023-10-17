@@ -92,12 +92,12 @@ namespace ImGui {
     ImPool<OpenGLPanel::OpenGLPanel> OpenGLPanelData;
     std::stack<ImGuiID> ID_stack;
 
-    bool BeginOpenGL(const char* name, bool* p_open = nullptr, ImGuiWindowFlags flags = 0) {
+    bool BeginOpenGL(const char* str_id, const ImVec2& size, bool border, ImGuiWindowFlags flags) {
 
-        int beginFlag = ImGui::Begin(name, p_open, flags);
+        int beginFlag = ImGui::BeginChild(str_id, size, border, flags);
         if (!beginFlag) return beginFlag;
 
-        ID_stack.push(ImGui::GetID(name));
+        ID_stack.push(ImGui::GetID(str_id));
 
         OpenGLPanel::OpenGLPanel* data = OpenGLPanelData.GetOrAddByKey(ID_stack.top());
 
@@ -129,7 +129,7 @@ namespace ImGui {
         );
 
         ID_stack.pop();
-        ImGui::End();
+        ImGui::EndChild();
 
         if (!ID_stack.empty()) OpenGLPanelData.GetByKey(ID_stack.top())->bind();
     }

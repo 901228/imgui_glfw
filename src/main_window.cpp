@@ -189,26 +189,38 @@ void MainWindow::CreateMenuBar() {
 
 void MainWindow::CreateMainView() {
 
-    if (ImGui::BeginOpenGL("OpenGL", 0, flag)) {
+    if (ImGui::Begin("main view", 0, flag)) {
 
         ImGui::SetWindowPos({ window_pos.x, window_pos.y + menubar_offsetY });
         ImGui::SetWindowSize({ main_width, main_height });
 
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        if (ImGui::BeginTabBar("main view tab bar")) {
 
-        glUseProgram(0);
-        glColor3f(0.3f, 0.8f, 1.0f);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glBegin(GL_TRIANGLES);
-        {
-            glVertex2f(-1, 1);
-            glVertex2f(1, 1);
-            glVertex2f(1, -1);
+            if (ImGui::BeginTabItem("OpenGL view")) {
+
+                if (ImGui::BeginOpenGL("OpenGL", ImGui::GetContentRegionAvail(), false, flag)) {
+
+                    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                    glUseProgram(0);
+                    glColor3f(0.3f, 0.8f, 1.0f);
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                    glBegin(GL_TRIANGLES);
+                    {
+                        glVertex2f(-1, 1);
+                        glVertex2f(1, 1);
+                        glVertex2f(1, -1);
+                    }
+                    glEnd();
+
+                    ImGui::EndOpenGL();
+                }
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
         }
-        glEnd();
-
-        ImGui::EndOpenGL();
+        ImGui::End();
     }
 }
 

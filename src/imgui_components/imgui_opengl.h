@@ -6,7 +6,7 @@ typedef int ImGuiWindowFlags;
 
 namespace ImGui {
 
-    bool BeginOpenGL(const char* name, bool* p_open = nullptr, ImGuiWindowFlags flags = 0);
+    bool BeginOpenGL(const char* str_id, const ImVec2& size = ImVec2(0, 0), bool border = false, ImGuiWindowFlags flags = 0);
     void EndOpenGL();
 }
 
