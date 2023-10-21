@@ -34,14 +34,11 @@ elseif(UNIX AND NOT APPLE)
 
     file(GLOB lib_files_d ${LIB_DIR_D}/*.a)
     file(GLOB lib_files ${LIB_DIR}/*.a)
+    file(GLOB so_files_d ${LIB_DIR_D}/*.so)
+    file(GLOB so_files ${LIB_DIR}/*.so)
 
     # X11
     find_package(X11 REQUIRED)
-
-    # freetype
-    find_package(Freetype REQUIRED)
-
-    # message("${FREETYPE_LIBRARIES}")
 
 elseif(APPLE)
     # Apple
@@ -57,7 +54,12 @@ endforeach()
 foreach(x ${lib_files})
     list (APPEND LINK_LIST optimized ${x})
 endforeach()
-message("${LINK_LIST}")
+foreach(x ${so_files_d})
+    list (APPEND LINK_LIST debug ${x})
+endforeach()
+foreach(x ${so_files})
+    list (APPEND LINK_LIST optimized ${x})
+endforeach()
 
 # add src files to executable
 add_executable(${PROJECT_NAME} ${header_files} ${src_files})
@@ -67,7 +69,6 @@ target_link_libraries(${PROJECT_NAME} ${LINK_LIST})
 if(UNIX AND NOT APPLE)
     # bind X11 libs if linux
     target_link_libraries(${PROJECT_NAME} ${X11_LIBRARIES})
-    target_link_libraries(${PROJECT_NAME} ${FREETYPE_LIBRARIES})
 endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
 
