@@ -19,8 +19,6 @@
 #define NOTIFY_DEFAULT_OPACITY 1.0f     // 0-1 Toast opacity
 #define NOTIFY_TOAST_FLAGS ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoFocusOnAppearing
 
-// #define NOTIFY_FORMAT(fn, format, ...)	if (format) { va_list args; va_start(args, format); fn(format, args, __VA_ARGS__); va_end(args); }
-
 template<typename ... Args>
 static std::string string_format(const std::string& format, Args ... args) {
 
@@ -56,7 +54,7 @@ struct ImGuiToastTypeConfig {
     std::string title;
 
     //TODO: icons
-    inline static const ImGuiToastTypeConfig None() { return { ImGuiToastType_None, { 255, 255, 255, 255 }, "", "None" }; }
+    inline static const ImGuiToastTypeConfig None() { return { ImGuiToastType_None, { 255, 255, 255, 255 }, "", "" }; }
     inline static const ImGuiToastTypeConfig Success() { return { ImGuiToastType_Success, { 0, 255, 0, 255 }, "", "Success" }; }
     inline static const ImGuiToastTypeConfig Warning() { return { ImGuiToastType_Warning, { 255, 255, 0, 255 }, "", "Warning" }; }
     inline static const ImGuiToastTypeConfig Error() { return { ImGuiToastType_Error, { 255, 0, 0, 255 }, "", "Error" }; }
@@ -84,6 +82,7 @@ enum ImGuiToastPhase_ {
     ImGuiToastPhase_MAX
 };
 
+//TODO: different positions
 enum ImGuiToastPos_ {
 
     ImGuiToastPos_TopLeft,
@@ -117,6 +116,7 @@ public:
 
     template<typename ... Args>
     ImGuiToast(ImGuiToastType type, int dismiss_time, const char* format, Args ... args) : ImGuiToast(type, dismiss_time) { this->setContent(format, args ...); }
+
     ~ImGuiToast() = default;
 
 private:
@@ -198,42 +198,68 @@ namespace ImGui {
     inline void RenderNotifications() {
 
         const ImVec2 wrk_size = GetViewportPlatformMonitor(GetMainViewport())->WorkSize;
+        const float textWrapWidth = wrk_size.x / 3.0f;
+
         float yy = NOTIFY_PADDING_Y;
 
+        //FIXME: rounding not working
         PushStyleVar(ImGuiStyleVar_WindowRounding, 5.f); // Round borders
-        // PushStyleColor(ImGuiCol_WindowBg, ImVec4(43.f / 255.f, 43.f / 255.f, 43.f / 255.f, 100.f / 255.f)); // Background color
         for (int i = 0; i < notifications.size(); i++) {
 
             const auto& notification = notifications[i];
-
             const float opacity = notification.getFadePercent();
+            const bool isTitleRendered = !notification.getTitle().empty();
+
             PushStyleVar(ImGuiStyleVar_Alpha, opacity);
 
+            ImVec2 w_size;
+            {
+                // compute the size of the notification
+                const ImVec2 titleSize = (isTitleRendered ? CalcTextSize(string_format("%c%s", 'i', notification.getTitle().c_str()).c_str(), 0, false, textWrapWidth) : ImVec2(0, 0));
+                printf("titleSize: (%g, %g)\n", titleSize.x, titleSize.y);
+                const ImVec2 contentSize = CalcTextSize(notification.getContent().c_str(), 0, false, textWrapWidth);
+                w_size.x = std::max(
+                    std::max(titleSize.x, contentSize.x) + GetStyle().WindowPadding.x * 2,
+                    GetStyle().WindowMinSize.x
+                );
+                w_size.y = std::max(
+                    titleSize.y + contentSize.y + GetStyle().WindowPadding.y * 2 + (isTitleRendered ? GetStyle().ItemSpacing.y * 2 : 0),
+                    GetStyle().WindowMinSize.y
+                );
+
+                // set notification positions
+                SetNextWindowPos({ wrk_size.x - w_size.x - NOTIFY_PADDING_X , wrk_size.y - w_size.y - yy }, ImGuiCond_Always);
+            }
             if (Begin(string_format("TOAST%i", i).c_str(), 0, NOTIFY_TOAST_FLAGS)) {
 
-                // set notification position & record y for the position of the next notification
-                ImVec2 w_size = ImGui::GetWindowSize();
-                ImGui::SetWindowPos({ wrk_size.x - w_size.x - NOTIFY_PADDING_X , wrk_size.y - w_size.y - yy }, ImGuiCond_Always);
-                yy += w_size.y + NOTIFY_PADDING_MESSAGE_Y;
+                PushTextWrapPos(textWrapWidth);
 
-                // title
-                ImGui::Text("%s", notification.getTitle().c_str());
-                ImGui::Separator();
+                if (isTitleRendered) {
+
+                    // title
+                    TextColored(notification.getTypeColor(), notification.getTypeIcon().c_str());
+                    SameLine();
+                    Text(notification.getTitle().c_str());
+                    Separator();
+                }
 
                 // content
-                ImGui::Text(notification.getContent().c_str());
+                Text(notification.getContent().c_str());
 
+                PopTextWrapPos();
             }
             End();
+            // record y for the position of the next notification
+            yy += w_size.y + NOTIFY_PADDING_MESSAGE_Y;
 
             PopStyleVar();
         }
 
-        // PopStyleColor();
         PopStyleVar();
 
         timestamp++;
         std::erase_if(notifications, [](const ImGuiToast& i) { return (i.getPhase() == ImGuiToastPhase_Expired); });
+        //TODO: drop animation
     }
 }
 

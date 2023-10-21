@@ -120,6 +120,7 @@ void MainWindow::Run() {
 
         // ImGui components
         CreateImGuiComponents();
+        // ImGui::ShowDemoWindow();
         ImGui::Render();
 
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -228,7 +229,8 @@ void MainWindow::CreateMainView() {
 
                     if (ImGui::Button("Insert Notifications")) {
 
-                        ImGui::InsertNotification({ ImGuiToastType_Success, 90, "Hello World! This is a success! %s", "We can also format here:)" });
+                        ImGui::InsertNotification({ ImGuiToastType_None, 90, "Hello None!" });
+                        // ImGui::InsertNotification({ ImGuiToastType_Success, 90, "Hello World! This is a success! %s", "We can also format here:)" });
                         // ImGui::InsertNotification({ ImGuiToastType_Warning, 90, "Hello World! This is a warning! %d", 0x1337 });
                         // ImGui::InsertNotification({ ImGuiToastType_Error, 90, "Hello World! This is an error! 0x%X", 0xDEADBEEF });
                         // ImGui::InsertNotification({ ImGuiToastType_Info, 90, "Hello World! This is an info!" });
