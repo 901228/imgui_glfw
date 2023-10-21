@@ -300,5 +300,5 @@ void MainWindow::CreateSettingPage() {
 void MainWindow::RenderNotifications() {
 
     // Render Notifications
-    ImGui::RenderNotifications(); // <-- Here we render all notifications
+    ImGui::RenderNotifications();
 }

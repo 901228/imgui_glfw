@@ -14,10 +14,11 @@
 #define NOTIFY_PADDING_X 20.f           // Bottom-left X padding
 #define NOTIFY_PADDING_Y 20.f           // Bottom-left Y padding
 #define NOTIFY_PADDING_MESSAGE_Y 10.f   // Padding Y between each message
-#define NOTIFY_FADE_IN_OUT_TIME 10       // Fade in and out duration
+#define NOTIFY_FADE_IN_OUT_TIME 10      // Fade in and out duration
 #define NOTIFY_DEFAULT_DISMISS 90       // Auto dismiss after X frames (fps) (default, applied only of no data provided in constructors)
 #define NOTIFY_DEFAULT_OPACITY 1.0f     // 0-1 Toast opacity
-#define NOTIFY_TOAST_FLAGS ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoFocusOnAppearing
+#define NOTIFY_DEFAULT_ROUNDING 5.0f    // 0-1 Toast opacity
+#define NOTIFY_TOAST_FLAGS ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoFocusOnAppearing
 
 template<typename ... Args>
 static std::string string_format(const std::string& format, Args ... args) {
@@ -197,13 +198,14 @@ namespace ImGui {
 
     inline void RenderNotifications() {
 
-        const ImVec2 wrk_size = GetViewportPlatformMonitor(GetMainViewport())->WorkSize;
+        ImVec2 wrk_size = (GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable ? GetViewportPlatformMonitor(GetMainViewport())->WorkSize : ImVec2(1000, 800));
+
         const float textWrapWidth = wrk_size.x / 3.0f;
 
         float yy = NOTIFY_PADDING_Y;
 
-        //FIXME: rounding not working
-        PushStyleVar(ImGuiStyleVar_WindowRounding, 5.f); // Round borders
+        //FIXME: rounding not working because of multiviewport ?
+        PushStyleVar(ImGuiStyleVar_WindowRounding, NOTIFY_DEFAULT_ROUNDING); // Round borders
         for (int i = 0; i < notifications.size(); i++) {
 
             const auto& notification = notifications[i];
@@ -216,7 +218,6 @@ namespace ImGui {
             {
                 // compute the size of the notification
                 const ImVec2 titleSize = (isTitleRendered ? CalcTextSize(string_format("%c%s", 'i', notification.getTitle().c_str()).c_str(), 0, false, textWrapWidth) : ImVec2(0, 0));
-                printf("titleSize: (%g, %g)\n", titleSize.x, titleSize.y);
                 const ImVec2 contentSize = CalcTextSize(notification.getContent().c_str(), 0, false, textWrapWidth);
                 w_size.x = std::max(
                     std::max(titleSize.x, contentSize.x) + GetStyle().WindowPadding.x * 2,
