@@ -6,6 +6,7 @@
 #include <ImGui/imgui_impl_opengl3.h>
 
 #include "imgui_components/imgui_opengl.h"
+#include "imgui_components/imgui_notification.h"
 
 MainWindow::MainWindow() {
 
@@ -161,6 +162,8 @@ void MainWindow::CreateImGuiComponents() {
     CreateMainView();
     CreateControlPanel();
     CreateSettingPage();
+
+    RenderNotifications();
 }
 
 void MainWindow::HandleUserInput() {
@@ -218,6 +221,31 @@ void MainWindow::CreateMainView() {
                 }
                 ImGui::EndTabItem();
             }
+
+            if (ImGui::BeginTabItem("notification")) {
+
+                if (ImGui::BeginChild("notification child")) {
+
+                    if (ImGui::Button("Insert Notifications")) {
+
+                        ImGui::InsertNotification({ ImGuiToastType_Success, 90, "Hello World! This is a success! %s", "We can also format here:)" });
+                        // ImGui::InsertNotification({ ImGuiToastType_Warning, 90, "Hello World! This is a warning! %d", 0x1337 });
+                        // ImGui::InsertNotification({ ImGuiToastType_Error, 90, "Hello World! This is an error! 0x%X", 0xDEADBEEF });
+                        // ImGui::InsertNotification({ ImGuiToastType_Info, 90, "Hello World! This is an info!" });
+                        // ImGui::InsertNotification({ ImGuiToastType_Info, 90, "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation" });
+                    }
+                    if (ImGui::Button("Custom Toast")) {
+
+                        // ImGuiToast toast(ImGuiToastType_Success, 90); // <-- content can also be passed here as above
+                        // toast.set_title("This is a %s title", "wonderful");
+                        // toast.set_content("Lorem ipsum dolor sit amet");
+                        // ImGui::InsertNotification(toast);
+                    }
+
+                    ImGui::EndChild();
+                }
+                ImGui::EndTabItem();
+            }
             ImGui::EndTabBar();
         }
         ImGui::End();
@@ -265,4 +293,10 @@ void MainWindow::CreateSettingPage() {
 
         ImGui::End();
     }
+}
+
+void MainWindow::RenderNotifications() {
+
+    // Render Notifications
+    ImGui::RenderNotifications(); // <-- Here we render all notifications
 }

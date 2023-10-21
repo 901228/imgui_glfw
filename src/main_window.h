@@ -33,6 +33,7 @@ private:
     void CreateMainView();
     void CreateControlPanel();
     void CreateSettingPage();
+    void RenderNotifications();
 
     // constants
 private:
