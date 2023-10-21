@@ -7,9 +7,9 @@
 
 #include "imgui_components/imgui_opengl.h"
 
-MainWindow::MainWindow() {
+MainWindow::MainWindow(bool isMultiViewport) {
 
-    isReady = Init();
+    isReady = Init(isMultiViewport);
     if (isReady) Run();
 }
 
@@ -23,7 +23,7 @@ static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
-bool MainWindow::Init() {
+bool MainWindow::Init(bool isMultiViewport) {
 
     // glfw initialization
     {
@@ -77,9 +77,8 @@ bool MainWindow::Init() {
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-#ifdef MULTIVIEWPORT
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable MultiViewports
-#endif
+        if (isMultiViewport)
+            io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable MultiViewports
 
         // Setup Dear ImGui style
         ImGui::StyleColorsLight();
@@ -128,10 +127,8 @@ void MainWindow::Run() {
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 
             GLFWwindow* backup_current_context = glfwGetCurrentContext();
-#if defined(_WIN32) && defined(MULTIVIEWPORT)
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
-#endif
             glfwMakeContextCurrent(backup_current_context);
         }
 
@@ -151,11 +148,7 @@ void MainWindow::Destroy() {
 
 void MainWindow::CreateImGuiComponents() {
 
-#ifdef MULTIVIEWPORT
-    window_pos = { ImGui::GetMainViewport()->Pos };
-#else
-    window_pos = { 0, 0 };
-#endif
+    window_pos = (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable ? ImVec2(ImGui::GetMainViewport()->Pos) : ImVec2(0, 0));
 
     CreateMenuBar();
     CreateMainView();

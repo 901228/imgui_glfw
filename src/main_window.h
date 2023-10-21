@@ -7,19 +7,17 @@
 
 #include <ImGui/imgui.h>
 
-#define MULTIVIEWPORT
-
 class MainWindow {
 
     // constructor
 public:
-    MainWindow();
+    MainWindow(bool isMultiViewport = true);
     ~MainWindow();
 
     // main functions
 private:
     GLFWwindow* window = nullptr;
-    bool Init();
+    bool Init(bool isMultiViewport);
     void Run();
     void Destroy();
     bool isReady = false;

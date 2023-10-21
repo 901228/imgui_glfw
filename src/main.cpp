@@ -7,7 +7,7 @@
 
 int main(int argc, char** argv) {
 
-    MainWindow mainWindow;
+    MainWindow mainWindow{};
 
     return 0;
 }
