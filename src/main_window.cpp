@@ -236,10 +236,10 @@ void MainWindow::CreateMainView() {
                     }
                     if (ImGui::Button("Custom Toast")) {
 
-                        // ImGuiToast toast(ImGuiToastType_Success, 90); // <-- content can also be passed here as above
-                        // toast.set_title("This is a %s title", "wonderful");
-                        // toast.set_content("Lorem ipsum dolor sit amet");
-                        // ImGui::InsertNotification(toast);
+                        ImGuiToast toast(ImGuiToastType_Success, 90); // <-- content can also be passed here as above
+                        toast.setTitle("This is a %s title", "wonderful");
+                        toast.setContent("This is a %s content", "beautiful");
+                        ImGui::InsertNotification(toast);
                     }
 
                     ImGui::EndChild();
