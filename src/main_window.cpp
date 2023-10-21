@@ -128,10 +128,8 @@ void MainWindow::Run() {
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 
             GLFWwindow* backup_current_context = glfwGetCurrentContext();
-#if defined(_WIN32) && defined(MULTIVIEWPORT)
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
-#endif
             glfwMakeContextCurrent(backup_current_context);
         }
 
