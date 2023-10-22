@@ -171,8 +171,15 @@ public:
     inline const ImGuiToastTypeConfig getDefaultConfig() const { return ImGuiToastTypeConfig::get(this->type); }
     inline const std::string getDefaultTitle() const { return getDefaultConfig().title; }
     inline const std::string getTypeIcon() const { return getDefaultConfig().icon; }
-    //TODO: detect light or dark
-    inline const ImVec4 getTypeColor() const { return getDefaultConfig().color_light; }
+    inline const ImVec4 getTypeColor() const {
+
+        // use text color to determine icon color
+        ImVec4 textColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+
+        //XXX: whether text color is dark or light
+        if (textColor.x + textColor.y + textColor.z < 1.5f) return getDefaultConfig().color_light;
+        else return getDefaultConfig().color_dark;
+    }
 
     inline const int getElapseTime() const { return ImGui::timestamp - this->creation_time; }
     inline const ImGuiToastPhase getPhase() const {
