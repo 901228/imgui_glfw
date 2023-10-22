@@ -217,12 +217,9 @@ void MainWindow::CreateMainView() {
 
                 auto coolbar_button = [](const char* label) -> bool {
                     float w = ImGui::GetCoolBarItemWidth();
-                    float originScale = ImGui::GetFont()->Scale;
-                    ImGui::GetFont()->Scale = ImGui::GetCoolBarItemScale();
-                    ImGui::PushFont(ImGui::GetFont());
+                    ImGui::SetWindowFontScale(ImGui::GetCoolBarItemScale());
                     bool res = ImGui::Button(label, ImVec2(w, w));
-                    ImGui::PopFont();
-                    ImGui::GetFont()->Scale = originScale;
+                    ImGui::SetWindowFontScale(1);
                     return res;
                     };
 
