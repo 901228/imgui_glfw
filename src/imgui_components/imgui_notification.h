@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <string>
+#include <map>
 
 #include <memory>
 #include <stdexcept>
@@ -86,22 +87,24 @@ enum ImGuiToastPhase_ {
     ImGuiToastPhase_MAX
 };
 
-//TODO: different positions
 enum ImGuiToastPos_ {
-
     ImGuiToastPos_Top = 1,
-    ImGuiToastPos_Bottom = 1 << 1,
-    ImGuiToastPos_Left = 1 << 2,
-    ImGuiToastPos_Center = 1 << 3,
-    ImGuiToastPos_Right = 1 << 4,
+    ImGuiToastPos_Middle = 1 << 1,
+    ImGuiToastPos_Bottom = 1 << 2,
+    ImGuiToastPos_Left = 1 << 3,
+    ImGuiToastPos_Center = 1 << 4,
+    ImGuiToastPos_Right = 1 << 5,
 
     ImGuiToastPos_TopLeft = ImGuiToastPos_Top | ImGuiToastPos_Left,
     ImGuiToastPos_TopCenter = ImGuiToastPos_Top | ImGuiToastPos_Center,
     ImGuiToastPos_TopRight = ImGuiToastPos_Top | ImGuiToastPos_Right,
+    ImGuiToastPos_MiddleLeft = ImGuiToastPos_Middle | ImGuiToastPos_Left,
+    ImGuiToastPos_MiddleCenter = ImGuiToastPos_Middle | ImGuiToastPos_Center,
+    ImGuiToastPos_MiddleRight = ImGuiToastPos_Middle | ImGuiToastPos_Right,
     ImGuiToastPos_BottomLeft = ImGuiToastPos_Bottom | ImGuiToastPos_Left,
     ImGuiToastPos_BottomCenter = ImGuiToastPos_Bottom | ImGuiToastPos_Center,
     ImGuiToastPos_BottomRight = ImGuiToastPos_Bottom | ImGuiToastPos_Right,
-    ImGuiToastPos_MAX = 1 << 5
+    ImGuiToastPos_MAX = 1 << 6
 };
 
 namespace ImGui { inline int timestamp = 0; }
@@ -109,7 +112,7 @@ namespace ImGui { inline int timestamp = 0; }
 class ImGuiToast {
 
 public:
-    ImGuiToast(ImGuiToastType type, int dismiss_time = NOTIFICATION_DEFAULT_DISMISS) {
+    ImGuiToast(ImGuiToastType type, int dismiss_time = NOTIFICATION_DEFAULT_DISMISS, ImGuiToastPos pos = ImGuiToastPos_BottomRight) {
 
         IM_ASSERT(type < ImGuiToastType_MAX);
 
@@ -118,13 +121,22 @@ public:
         this->creation_time = ImGui::timestamp;
         this->title = "";
         this->content = "";
+        this->pos = pos;
     }
 
     template<typename ... Args>
-    ImGuiToast(ImGuiToastType type, const char* format, Args ... args) : ImGuiToast(type, NOTIFICATION_DEFAULT_DISMISS) { this->setContent(format, args ...); }
+    ImGuiToast(ImGuiToastType type, const char* format, Args ... args) : ImGuiToast(type) { this->setContent(format, args ...); }
 
     template<typename ... Args>
+    ImGuiToast(ImGuiToastType type, ImGuiToastPos pos, const char* format, Args ... args) : ImGuiToast(type, NOTIFICATION_DEFAULT_DISMISS, pos) { this->setContent(format, args ...); }
+
+    template<typename ... Args>
+    ImGuiToast(ImGuiToastType type, int dismiss_time, ImGuiToastPos pos, const char* format, Args ... args) : ImGuiToast(type, dismiss_time, pos) { this->setContent(format, args ...); }
+
+    /*
+    template<typename ... Args>
     ImGuiToast(ImGuiToastType type, int dismiss_time, const char* format, Args ... args) : ImGuiToast(type, dismiss_time) { this->setContent(format, args ...); }
+    */
 
     ~ImGuiToast() = default;
 
@@ -226,7 +238,40 @@ namespace ImGui {
 
         const float textWrapWidth = wrk_size.x / 3.0f;
 
-        float yy = NOTIFICATION_PADDING_Y;
+        std::map<ImGuiToastPos, float> yy;
+        yy[ImGuiToastPos_Top] = NOTIFICATION_PADDING_Y;
+        yy[ImGuiToastPos_TopLeft] = NOTIFICATION_PADDING_Y;
+        yy[ImGuiToastPos_TopCenter] = NOTIFICATION_PADDING_Y;
+        yy[ImGuiToastPos_TopRight] = NOTIFICATION_PADDING_Y;
+        yy[ImGuiToastPos_Middle] = -NOTIFICATION_PADDING_Y;
+        yy[ImGuiToastPos_MiddleLeft] = -NOTIFICATION_PADDING_Y;
+        yy[ImGuiToastPos_MiddleCenter] = -NOTIFICATION_PADDING_Y;
+        yy[ImGuiToastPos_MiddleRight] = -NOTIFICATION_PADDING_Y;
+        yy[ImGuiToastPos_Bottom] = NOTIFICATION_PADDING_Y;
+        yy[ImGuiToastPos_BottomLeft] = NOTIFICATION_PADDING_Y;
+        yy[ImGuiToastPos_BottomCenter] = NOTIFICATION_PADDING_Y;
+        yy[ImGuiToastPos_BottomRight] = NOTIFICATION_PADDING_Y;
+
+        // calculate y for middle
+        {
+            for (const auto& i : notifications) {
+
+                if (i.getPos() & ImGuiToastPos_Middle) {
+
+                    const float titleSizeY = (i.getTitle().empty() ? 0 : CalcTextSize(string_format("%c%s", 'i', i.getTitle().c_str()).c_str(), 0, false, textWrapWidth).y);
+                    const float contentSizeY = CalcTextSize(i.getContent().c_str(), 0, false, textWrapWidth).y;
+                    yy[i.getPos()] += std::max(
+                        titleSizeY + contentSizeY + GetStyle().WindowPadding.y * 2 + (i.getTitle().empty() ? 0 : GetStyle().ItemSpacing.y * 2),
+                        GetStyle().WindowMinSize.y
+                    ) + NOTIFICATION_PADDING_Y;
+                }
+            }
+
+            yy[ImGuiToastPos_Middle] = (wrk_size.y - yy[ImGuiToastPos_Middle]) / 2.0f;
+            yy[ImGuiToastPos_MiddleLeft] = (wrk_size.y - yy[ImGuiToastPos_MiddleLeft]) / 2.0f;
+            yy[ImGuiToastPos_MiddleCenter] = (wrk_size.y - yy[ImGuiToastPos_MiddleCenter]) / 2.0f;
+            yy[ImGuiToastPos_MiddleRight] = (wrk_size.y - yy[ImGuiToastPos_MiddleRight]) / 2.0f;
+        }
 
         //FIXME: rounding not working because of multiviewport ?
         PushStyleVar(ImGuiStyleVar_WindowRounding, NOTIFICATION_DEFAULT_ROUNDING); // Round borders
@@ -257,8 +302,17 @@ namespace ImGui {
 
                 if (isDropping) w_size.y *= notification.getRemainPercent();
 
+                ImVec2 windowPos;
+                if (notification.getPos() & ImGuiToastPos_Right) windowPos.x = wrk_size.x - w_size.x - NOTIFICATION_PADDING_X;
+                else if (notification.getPos() & ImGuiToastPos_Center) windowPos.x = (wrk_size.x - w_size.x) / 2.0f;
+                else if (notification.getPos() & ImGuiToastPos_Left) windowPos.x = NOTIFICATION_PADDING_X;
+
+                if (notification.getPos() & ImGuiToastPos_Top) windowPos.y = yy[notification.getPos()];
+                else if (notification.getPos() & ImGuiToastPos_Middle) windowPos.y = yy[notification.getPos()];
+                else if (notification.getPos() & ImGuiToastPos_Bottom) windowPos.y = wrk_size.y - w_size.y - yy[notification.getPos()];
+
                 // set notification positions
-                SetNextWindowPos({ wrk_size.x - w_size.x - NOTIFICATION_PADDING_X , wrk_size.y - w_size.y - yy }, ImGuiCond_Always);
+                SetNextWindowPos(windowPos, ImGuiCond_Always);
             }
             if (Begin(string_format("TOAST%i", i).c_str(), 0, NOTIFICATION_TOAST_FLAGS)) {
 
@@ -280,7 +334,7 @@ namespace ImGui {
             }
             End();
             // record y for the position of the next notification
-            yy += w_size.y + NOTIFICATION_PADDING_MESSAGE_Y;
+            yy[notification.getPos()] += w_size.y + NOTIFICATION_PADDING_MESSAGE_Y;
 
             PopStyleVar();
         }

@@ -222,7 +222,15 @@ void MainWindow::CreateMainView() {
 
                     if (ImGui::Button("Insert Notifications")) {
 
-                        ImGui::InsertNotification({ ImGuiToastType_None, "Hello None!" });
+                        // ImGui::InsertNotification({ ImGuiToastType_None, ImGuiToastPos_TopLeft, "Hello None!" });
+                        // ImGui::InsertNotification({ ImGuiToastType_None, ImGuiToastPos_TopCenter, "Hello None!" });
+                        // ImGui::InsertNotification({ ImGuiToastType_None, ImGuiToastPos_TopRight, "Hello None!" });
+                        ImGui::InsertNotification({ ImGuiToastType_None, ImGuiToastPos_MiddleLeft, "Hello None!" });
+                        ImGui::InsertNotification({ ImGuiToastType_None, ImGuiToastPos_MiddleCenter, "Hello None!" });
+                        ImGui::InsertNotification({ ImGuiToastType_None, ImGuiToastPos_MiddleRight, "Hello None!" });
+                        // ImGui::InsertNotification({ ImGuiToastType_None, ImGuiToastPos_BottomLeft, "Hello None!" });
+                        // ImGui::InsertNotification({ ImGuiToastType_None, ImGuiToastPos_BottomCenter, "Hello None!" });
+                        // ImGui::InsertNotification({ ImGuiToastType_None, ImGuiToastPos_BottomRight, "Hello None!" });
                         // ImGui::InsertNotification({ ImGuiToastType_Success, "Hello World! This is a success! %s", "We can also format here:)" });
                         // ImGui::InsertNotification({ ImGuiToastType_Warning, "Hello World! This is a warning! %d", 0x1337 });
                         // ImGui::InsertNotification({ ImGuiToastType_Error, "Hello World! This is an error! 0x%X", 0xDEADBEEF });
