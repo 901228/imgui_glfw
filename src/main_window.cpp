@@ -222,16 +222,16 @@ void MainWindow::CreateMainView() {
 
                     if (ImGui::Button("Insert Notifications")) {
 
-                        ImGui::InsertNotification({ ImGuiToastType_None, 90, "Hello None!" });
-                        // ImGui::InsertNotification({ ImGuiToastType_Success, 90, "Hello World! This is a success! %s", "We can also format here:)" });
-                        // ImGui::InsertNotification({ ImGuiToastType_Warning, 90, "Hello World! This is a warning! %d", 0x1337 });
-                        // ImGui::InsertNotification({ ImGuiToastType_Error, 90, "Hello World! This is an error! 0x%X", 0xDEADBEEF });
-                        // ImGui::InsertNotification({ ImGuiToastType_Info, 90, "Hello World! This is an info!" });
-                        // ImGui::InsertNotification({ ImGuiToastType_Info, 90, "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation" });
+                        ImGui::InsertNotification({ ImGuiToastType_None, "Hello None!" });
+                        // ImGui::InsertNotification({ ImGuiToastType_Success, "Hello World! This is a success! %s", "We can also format here:)" });
+                        // ImGui::InsertNotification({ ImGuiToastType_Warning, "Hello World! This is a warning! %d", 0x1337 });
+                        // ImGui::InsertNotification({ ImGuiToastType_Error, "Hello World! This is an error! 0x%X", 0xDEADBEEF });
+                        // ImGui::InsertNotification({ ImGuiToastType_Info, "Hello World! This is an info!" });
+                        // ImGui::InsertNotification({ ImGuiToastType_Info, "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation" });
                     }
                     if (ImGui::Button("Custom Toast")) {
 
-                        ImGuiToast toast(ImGuiToastType_Success, 90); // <-- content can also be passed here as above
+                        ImGuiToast toast(ImGuiToastType_Success); // <-- content can also be passed here as above
                         toast.setTitle("This is a %s title", "wonderful");
                         toast.setContent("This is a %s content", "beautiful");
                         ImGui::InsertNotification(toast);

@@ -11,14 +11,16 @@
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_internal.h>
 
-#define NOTIFY_PADDING_X 20.f           // Bottom-left X padding
-#define NOTIFY_PADDING_Y 20.f           // Bottom-left Y padding
-#define NOTIFY_PADDING_MESSAGE_Y 10.f   // Padding Y between each message
-#define NOTIFY_FADE_IN_OUT_TIME 10      // Fade in and out duration
-#define NOTIFY_DEFAULT_DISMISS 90       // Auto dismiss after X frames (fps) (default, applied only of no data provided in constructors)
-#define NOTIFY_DEFAULT_OPACITY 1.0f     // 0-1 Toast opacity
-#define NOTIFY_DEFAULT_ROUNDING 5.0f    // 0-1 Toast opacity
-#define NOTIFY_TOAST_FLAGS ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoFocusOnAppearing
+#define NOTIFICATION_PADDING_X 20.f           // Bottom-left X padding
+#define NOTIFICATION_PADDING_Y 20.f           // Bottom-left Y padding
+#define NOTIFICATION_PADDING_MESSAGE_Y 10.f   // Padding Y between each message
+#define NOTIFICATION_FADE_IN_OUT_TIME 10      // Fade in and out duration
+#define NOTIFICATION_FADE_IN_OUT_TIME 10      // Fade in and out duration
+#define NOTIFICATION_DROP_TIME 8              // Hide for drop animation
+#define NOTIFICATION_DEFAULT_DISMISS 90       // Auto dismiss after X frames (fps) (default, applied only of no data provided in constructors)
+#define NOTIFICATION_DEFAULT_OPACITY 1.0f     // 0-1 Toast opacity
+#define NOTIFICATION_DEFAULT_ROUNDING 5.0f    // 0-1 Toast opacity
+#define NOTIFICATION_TOAST_FLAGS ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoFocusOnAppearing
 
 template<typename ... Args>
 static std::string string_format(const std::string& format, Args ... args) {
@@ -79,6 +81,7 @@ enum ImGuiToastPhase_ {
     ImGuiToastPhase_FadeIn,
     ImGuiToastPhase_Wait,
     ImGuiToastPhase_FadeOut,
+    ImGuiToastPhase_Drop,
     ImGuiToastPhase_Expired,
     ImGuiToastPhase_MAX
 };
@@ -86,14 +89,19 @@ enum ImGuiToastPhase_ {
 //TODO: different positions
 enum ImGuiToastPos_ {
 
-    ImGuiToastPos_TopLeft,
-    ImGuiToastPos_TopCenter,
-    ImGuiToastPos_TopRight,
-    ImGuiToastPos_BottomLeft,
-    ImGuiToastPos_BottomCenter,
-    ImGuiToastPos_BottomRight,
-    ImGuiToastPos_Center,
-    ImGuiToastPos_MAX
+    ImGuiToastPos_Top = 1,
+    ImGuiToastPos_Bottom = 1 << 1,
+    ImGuiToastPos_Left = 1 << 2,
+    ImGuiToastPos_Center = 1 << 3,
+    ImGuiToastPos_Right = 1 << 4,
+
+    ImGuiToastPos_TopLeft = ImGuiToastPos_Top | ImGuiToastPos_Left,
+    ImGuiToastPos_TopCenter = ImGuiToastPos_Top | ImGuiToastPos_Center,
+    ImGuiToastPos_TopRight = ImGuiToastPos_Top | ImGuiToastPos_Right,
+    ImGuiToastPos_BottomLeft = ImGuiToastPos_Bottom | ImGuiToastPos_Left,
+    ImGuiToastPos_BottomCenter = ImGuiToastPos_Bottom | ImGuiToastPos_Center,
+    ImGuiToastPos_BottomRight = ImGuiToastPos_Bottom | ImGuiToastPos_Right,
+    ImGuiToastPos_MAX = 1 << 5
 };
 
 namespace ImGui { inline int timestamp = 0; }
@@ -101,7 +109,7 @@ namespace ImGui { inline int timestamp = 0; }
 class ImGuiToast {
 
 public:
-    ImGuiToast(ImGuiToastType type, int dismiss_time = NOTIFY_DEFAULT_DISMISS) {
+    ImGuiToast(ImGuiToastType type, int dismiss_time = NOTIFICATION_DEFAULT_DISMISS) {
 
         IM_ASSERT(type < ImGuiToastType_MAX);
 
@@ -113,7 +121,7 @@ public:
     }
 
     template<typename ... Args>
-    ImGuiToast(ImGuiToastType type, const char* format, Args ... args) : ImGuiToast(type, NOTIFY_DEFAULT_DISMISS) { this->setContent(format, args ...); }
+    ImGuiToast(ImGuiToastType type, const char* format, Args ... args) : ImGuiToast(type, NOTIFICATION_DEFAULT_DISMISS) { this->setContent(format, args ...); }
 
     template<typename ... Args>
     ImGuiToast(ImGuiToastType type, int dismiss_time, const char* format, Args ... args) : ImGuiToast(type, dismiss_time) { this->setContent(format, args ...); }
@@ -124,9 +132,10 @@ private:
     ImGuiToastType type = ImGuiToastType_None;
     std::string title;
     std::string content;
-    int dismiss_time = NOTIFY_DEFAULT_DISMISS;
+    int dismiss_time = NOTIFICATION_DEFAULT_DISMISS;
     int creation_time = 0;
-    float opacity = NOTIFY_DEFAULT_OPACITY;
+    float opacity = NOTIFICATION_DEFAULT_OPACITY;
+    ImGuiToastPos pos = ImGuiToastPos_BottomRight;
 
 private:
 public:
@@ -136,11 +145,13 @@ public:
     template<typename ... Args>
     inline void setContent(const char* format, Args ... args) { this->content = string_format(format, args ...); }
 
-    inline void setType(const ImGuiToastType type) { IM_ASSERT(type < ImGuiToastType_MAX); this->type = type; };
+    inline void setType(ImGuiToastType type) { IM_ASSERT(type < ImGuiToastType_MAX); this->type = type; }
+    inline void setPos(ImGuiToastPos pos) { IM_ASSERT(pos < ImGuiToastPos_MAX); this->pos = pos; }
 
 public:
     inline const std::string getTitle() const { return (this->title.empty() ? getDefaultTitle() : this->title); }
     inline const std::string getContent() const { return this->content; }
+    inline const ImGuiToastPos getPos() const { return this->pos; }
 
     inline const ImGuiToastTypeConfig getDefaultConfig() const { return ImGuiToastTypeConfig::get(this->type); }
     inline const std::string getDefaultTitle() const { return getDefaultConfig().title; }
@@ -152,13 +163,16 @@ public:
 
         const int& elapsed = getElapseTime();
 
-        if (elapsed > NOTIFY_FADE_IN_OUT_TIME + this->dismiss_time + NOTIFY_FADE_IN_OUT_TIME) {
+        if (elapsed > NOTIFICATION_FADE_IN_OUT_TIME + this->dismiss_time + NOTIFICATION_FADE_IN_OUT_TIME + NOTIFICATION_DROP_TIME) {
             return ImGuiToastPhase_Expired;
         }
-        else if (elapsed > NOTIFY_FADE_IN_OUT_TIME + this->dismiss_time) {
+        if (elapsed > NOTIFICATION_FADE_IN_OUT_TIME + this->dismiss_time + NOTIFICATION_FADE_IN_OUT_TIME) {
+            return ImGuiToastPhase_Drop;
+        }
+        else if (elapsed > NOTIFICATION_FADE_IN_OUT_TIME + this->dismiss_time) {
             return ImGuiToastPhase_FadeOut;
         }
-        else if (elapsed > NOTIFY_FADE_IN_OUT_TIME) {
+        else if (elapsed > NOTIFICATION_FADE_IN_OUT_TIME) {
             return ImGuiToastPhase_Wait;
         }
         else {
@@ -172,14 +186,24 @@ public:
 
         if (phase == ImGuiToastPhase_FadeIn) {
 
-            return (elapsed * NOTIFY_DEFAULT_OPACITY) / NOTIFY_FADE_IN_OUT_TIME;
+            return (elapsed * NOTIFICATION_DEFAULT_OPACITY) / NOTIFICATION_FADE_IN_OUT_TIME;
         }
         else if (phase == ImGuiToastPhase_FadeOut) {
 
-            return NOTIFY_DEFAULT_OPACITY - (((elapsed - NOTIFY_FADE_IN_OUT_TIME - this->dismiss_time) * NOTIFY_DEFAULT_OPACITY) / NOTIFY_FADE_IN_OUT_TIME);
+            return NOTIFICATION_DEFAULT_OPACITY - (((elapsed - NOTIFICATION_FADE_IN_OUT_TIME - this->dismiss_time) * NOTIFICATION_DEFAULT_OPACITY) / NOTIFICATION_FADE_IN_OUT_TIME);
+        }
+        else if (phase == ImGuiToastPhase_Drop) {
+
+            return 0;
         }
 
-        return 1.0f * NOTIFY_DEFAULT_OPACITY;
+        return NOTIFICATION_DEFAULT_OPACITY;
+    }
+    inline const float getRemainPercent() const {
+
+        const float elapsed = static_cast<float>(getElapseTime() - NOTIFICATION_FADE_IN_OUT_TIME - this->dismiss_time - NOTIFICATION_FADE_IN_OUT_TIME);
+
+        return 1.0f - (elapsed / NOTIFICATION_DROP_TIME);
     }
 };
 
@@ -202,15 +226,18 @@ namespace ImGui {
 
         const float textWrapWidth = wrk_size.x / 3.0f;
 
-        float yy = NOTIFY_PADDING_Y;
+        float yy = NOTIFICATION_PADDING_Y;
 
         //FIXME: rounding not working because of multiviewport ?
-        PushStyleVar(ImGuiStyleVar_WindowRounding, NOTIFY_DEFAULT_ROUNDING); // Round borders
+        PushStyleVar(ImGuiStyleVar_WindowRounding, NOTIFICATION_DEFAULT_ROUNDING); // Round borders
         for (int i = 0; i < notifications.size(); i++) {
 
-            const auto& notification = notifications[i];
-            const float opacity = notification.getFadePercent();
+            const ImGuiToast& notification = notifications[i];
+
             const bool isTitleRendered = !notification.getTitle().empty();
+            const bool isDropping = (notification.getPhase() == ImGuiToastPhase_Drop);
+
+            const float opacity = notification.getFadePercent();
 
             PushStyleVar(ImGuiStyleVar_Alpha, opacity);
 
@@ -228,10 +255,12 @@ namespace ImGui {
                     GetStyle().WindowMinSize.y
                 );
 
+                if (isDropping) w_size.y *= notification.getRemainPercent();
+
                 // set notification positions
-                SetNextWindowPos({ wrk_size.x - w_size.x - NOTIFY_PADDING_X , wrk_size.y - w_size.y - yy }, ImGuiCond_Always);
+                SetNextWindowPos({ wrk_size.x - w_size.x - NOTIFICATION_PADDING_X , wrk_size.y - w_size.y - yy }, ImGuiCond_Always);
             }
-            if (Begin(string_format("TOAST%i", i).c_str(), 0, NOTIFY_TOAST_FLAGS)) {
+            if (Begin(string_format("TOAST%i", i).c_str(), 0, NOTIFICATION_TOAST_FLAGS)) {
 
                 PushTextWrapPos(textWrapWidth);
 
@@ -251,7 +280,7 @@ namespace ImGui {
             }
             End();
             // record y for the position of the next notification
-            yy += w_size.y + NOTIFY_PADDING_MESSAGE_Y;
+            yy += w_size.y + NOTIFICATION_PADDING_MESSAGE_Y;
 
             PopStyleVar();
         }
@@ -260,7 +289,6 @@ namespace ImGui {
 
         timestamp++;
         std::erase_if(notifications, [](const ImGuiToast& i) { return (i.getPhase() == ImGuiToastPhase_Expired); });
-        //TODO: drop animation
     }
 }
 
