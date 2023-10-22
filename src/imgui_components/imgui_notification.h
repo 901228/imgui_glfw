@@ -12,6 +12,9 @@
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_internal.h>
 
+#include "font_awesome_5.h"
+#include "fa_solid_900.h"
+
 #define NOTIFICATION_PADDING_X 20.f           // Bottom-left X padding
 #define NOTIFICATION_PADDING_Y 20.f           // Bottom-left Y padding
 #define NOTIFICATION_PADDING_MESSAGE_Y 10.f   // Padding Y between each message
@@ -50,19 +53,19 @@ enum ImGuiToastType_ {
 
 struct ImGuiToastTypeConfig {
 
-    inline ImGuiToastTypeConfig(ImGuiToastType type, ImVec4 color, std::string icon, std::string title) : type(type), color(color), icon(icon), title(title) {};
+    inline ImGuiToastTypeConfig(ImGuiToastType type, ImVec4 color_light, ImVec4 color_dark, std::string icon, std::string title) : type(type), color_light(color_light), color_dark(color_dark), icon(icon), title(title) {};
 
     ImGuiToastType type;
-    ImVec4 color;
+    ImVec4 color_light;
+    ImVec4 color_dark;
     std::string icon;
     std::string title;
 
-    //TODO: icons
-    inline static const ImGuiToastTypeConfig None() { return { ImGuiToastType_None, { 255, 255, 255, 255 }, "", "" }; }
-    inline static const ImGuiToastTypeConfig Success() { return { ImGuiToastType_Success, { 0, 255, 0, 255 }, "", "Success" }; }
-    inline static const ImGuiToastTypeConfig Warning() { return { ImGuiToastType_Warning, { 255, 255, 0, 255 }, "", "Warning" }; }
-    inline static const ImGuiToastTypeConfig Error() { return { ImGuiToastType_Error, { 255, 0, 0, 255 }, "", "Error" }; }
-    inline static const ImGuiToastTypeConfig Info() { return { ImGuiToastType_Info, { 0, 157, 255, 255 }, "", "Info" }; }
+    inline static const ImGuiToastTypeConfig None() { return { ImGuiToastType_None, { 0, 0, 0, 1 }, { 1, 1, 1, 1 }, "", "" }; }
+    inline static const ImGuiToastTypeConfig Success() { return { ImGuiToastType_Success, { 0, 0.8, 0, 1 }, { 0, 1, 0, 1 }, ICON_FA_CHECK_CIRCLE, "Success" }; }
+    inline static const ImGuiToastTypeConfig Warning() { return { ImGuiToastType_Warning, { 0.7, 0.7, 0.3, 1 }, { 1, 1, 0, 1 }, ICON_FA_EXCLAMATION_TRIANGLE, "Warning" }; }
+    inline static const ImGuiToastTypeConfig Error() { return { ImGuiToastType_Error, { 1, 0, 0, 1 }, { 1, 0, 0, 1 }, ICON_FA_TIMES_CIRCLE, "Error" }; }
+    inline static const ImGuiToastTypeConfig Info() { return { ImGuiToastType_Info, { 0, 0.6, 1, 1 }, { 0, 0.6, 1, 1 }, ICON_FA_INFO_CIRCLE, "Info" }; }
 
     inline static const ImGuiToastTypeConfig get(ImGuiToastType type) {
 
@@ -168,7 +171,8 @@ public:
     inline const ImGuiToastTypeConfig getDefaultConfig() const { return ImGuiToastTypeConfig::get(this->type); }
     inline const std::string getDefaultTitle() const { return getDefaultConfig().title; }
     inline const std::string getTypeIcon() const { return getDefaultConfig().icon; }
-    inline const ImVec4 getTypeColor() const { return getDefaultConfig().color; }
+    //TODO: detect light or dark
+    inline const ImVec4 getTypeColor() const { return getDefaultConfig().color_light; }
 
     inline const int getElapseTime() const { return ImGui::timestamp - this->creation_time; }
     inline const ImGuiToastPhase getPhase() const {
@@ -220,6 +224,21 @@ public:
 };
 
 namespace ImGui {
+
+    inline void NotificationFontInit() {
+
+        // Merge icons into default tool font
+        ImGuiIO& io = GetIO();
+        io.Fonts->AddFontDefault();
+
+        ImFontConfig config;
+        const float fontSize = 13;
+        config.MergeMode = true;
+        // config.GlyphMinAdvanceX = fontSize; // Use if you want to make the icon monospaced
+        config.FontDataOwnedByAtlas = false;
+        static const ImWchar icon_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+        io.Fonts->AddFontFromMemoryTTF((void*)fa_solid_900, sizeof(fa_solid_900), fontSize, &config, icon_ranges);
+    }
 
     inline std::vector<ImGuiToast> notifications;
 
