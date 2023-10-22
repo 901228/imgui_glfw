@@ -217,9 +217,14 @@ public:
     }
     inline const float getRemainPercent() const {
 
+        const ImGuiToastPhase phase = getPhase();
         const float elapsed = static_cast<float>(getElapseTime() - NOTIFICATION_FADE_IN_OUT_TIME - this->dismiss_time - NOTIFICATION_FADE_IN_OUT_TIME);
 
-        return 1.0f - (elapsed / NOTIFICATION_DROP_TIME);
+        if (phase == ImGuiToastPhase_Drop) {
+            return 1.0f - (elapsed / NOTIFICATION_DROP_TIME);
+        }
+
+        return 1.0f;
     }
 };
 
@@ -299,8 +304,6 @@ namespace ImGui {
             const ImGuiToast& notification = notifications[i];
 
             const bool isTitleRendered = !notification.getTitle().empty();
-            const bool isDropping = (notification.getPhase() == ImGuiToastPhase_Drop);
-
             const float opacity = notification.getFadePercent();
 
             PushStyleVar(ImGuiStyleVar_Alpha, opacity);
@@ -319,7 +322,7 @@ namespace ImGui {
                     GetStyle().WindowMinSize.y
                 );
 
-                if (isDropping) w_size.y *= notification.getRemainPercent();
+                w_size.y *= notification.getRemainPercent();
 
                 ImVec2 windowPos;
                 if (notification.getPos() & ImGuiToastPos_Right) windowPos.x = wrk_size.x - w_size.x - NOTIFICATION_PADDING_X;
