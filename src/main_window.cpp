@@ -121,7 +121,7 @@ void MainWindow::Run() {
 
         // ImGui components
         CreateImGuiComponents();
-        // ImGui::ShowDemoWindow();
+        ImGui::ShowDemoWindow();
         ImGui::Render();
 
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -224,10 +224,10 @@ void MainWindow::CreateMainView() {
 
                     if (ImGui::Button("Insert Notifications")) {
 
-                        ImGui::InsertNotification({ ImGuiToastType_Success, "Hello World! This is a success! %s", "We can also format here:)" });
-                        ImGui::InsertNotification({ ImGuiToastType_Warning, "Hello World! This is a warning! %d", 0x1337 });
-                        ImGui::InsertNotification({ ImGuiToastType_Error, "Hello World! This is an error! 0x%X", 0xDEADBEEF });
-                        ImGui::InsertNotification({ ImGuiToastType_Info, "Hello World! This is an info!" });
+                        // ImGui::InsertNotification({ ImGuiToastType_Success, "Hello World! This is a success! %s", "We can also format here:)" });
+                        // ImGui::InsertNotification({ ImGuiToastType_Warning, "Hello World! This is a warning! %d", 0x1337 });
+                        // ImGui::InsertNotification({ ImGuiToastType_Error, "Hello World! This is an error! 0x%X", 0xDEADBEEF });
+                        // ImGui::InsertNotification({ ImGuiToastType_Info, "Hello World! This is an info!" });
                         ImGui::InsertNotification({ ImGuiToastType_Info, "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation" });
                     }
                     if (ImGui::Button("Show all pos notifications")) {

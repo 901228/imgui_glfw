@@ -265,9 +265,9 @@ namespace ImGui {
 
     inline void RenderNotifications() {
 
-        ImVec2 wrk_size = (GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable ? GetViewportPlatformMonitor(GetMainViewport())->WorkSize : ImVec2(1000, 800));
+        ImVec2 wrk_size = (GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable ? GetViewportPlatformMonitor(GetMainViewport())->WorkSize : GetMainViewport()->Size);
 
-        const float textWrapWidth = wrk_size.x / 3.0f;
+        const float textWrapWidth = wrk_size.x / 4.0f;
 
         std::map<ImGuiToastPos, float> yy;
         yy[ImGuiToastPos_Top] = NOTIFICATION_PADDING_Y;
@@ -289,7 +289,7 @@ namespace ImGui {
 
                 if (i.getPos() & ImGuiToastPos_Middle) {
 
-                    const float titleSizeY = (i.getTitle().empty() ? 0 : CalcTextSize(string_format("%c%s", 'i', i.getTitle().c_str()).c_str(), 0, false, textWrapWidth).y);
+                    const float titleSizeY = (i.getTitle().empty() ? 0 : CalcTextSize(string_format("%s%s", i.getTypeIcon().c_str(), i.getTitle().c_str()).c_str(), 0, false, textWrapWidth).y);
                     const float contentSizeY = CalcTextSize(i.getContent().c_str(), 0, false, textWrapWidth).y;
                     yy[i.getPos()] += std::max(
                         titleSizeY + contentSizeY + GetStyle().WindowPadding.y * 2 + (i.getTitle().empty() ? 0 : GetStyle().ItemSpacing.y * 2),
@@ -315,10 +315,13 @@ namespace ImGui {
 
             PushStyleVar(ImGuiStyleVar_Alpha, opacity);
 
+            //FIXME: pre-compute error
             ImVec2 w_size;
             {
                 // compute the size of the notification
-                const ImVec2 titleSize = (isTitleRendered ? CalcTextSize(string_format("%c%s", 'i', notification.getTitle().c_str()).c_str(), 0, false, textWrapWidth) : ImVec2(0, 0));
+                const ImVec2 titleTextSize = (isTitleRendered ? CalcTextSize(string_format("%s", notification.getTitle().c_str()).c_str(), 0, false, textWrapWidth) : ImVec2(0, 0));
+                const ImVec2 iconSize = (isTitleRendered ? CalcTextSize(string_format("%s", notification.getTypeIcon().c_str()).c_str(), 0, false, textWrapWidth) : ImVec2(0, 0));
+                const ImVec2 titleSize = { iconSize.x + GetStyle().ItemSpacing.x + titleTextSize.x, iconSize.y + titleTextSize.y };
                 const ImVec2 contentSize = CalcTextSize(notification.getContent().c_str(), 0, false, textWrapWidth);
                 w_size.x = std::max(
                     std::max(titleSize.x, contentSize.x) + GetStyle().WindowPadding.x * 2,
@@ -328,6 +331,10 @@ namespace ImGui {
                     titleSize.y + contentSize.y + GetStyle().WindowPadding.y * 2 + (isTitleRendered ? GetStyle().ItemSpacing.y * 2 : 0),
                     GetStyle().WindowMinSize.y
                 );
+
+                // system("cls");
+                printf("cal: (%g, %g)\n", w_size.x, w_size.y);
+                printf("%g\n%g\n", titleSize.y, contentSize.y);
 
                 w_size.y *= notification.getRemainPercent();
 
@@ -344,6 +351,8 @@ namespace ImGui {
                 SetNextWindowPos(windowPos, ImGuiCond_Always);
             }
             if (Begin(string_format("TOAST%i", i).c_str(), 0, NOTIFICATION_TOAST_FLAGS)) {
+
+                printf("ans: (%g, %g)\n", GetWindowSize().x, GetWindowSize().y);
 
                 PushTextWrapPos(textWrapWidth);
 
@@ -371,7 +380,7 @@ namespace ImGui {
         PopStyleVar();
 
         timestamp++;
-        std::erase_if(notifications, [](const ImGuiToast& i) { return (i.getPhase() == ImGuiToastPhase_Expired); });
+        // std::erase_if(notifications, [](const ImGuiToast& i) { return (i.getPhase() == ImGuiToastPhase_Expired); });
     }
 }
 
