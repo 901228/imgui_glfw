@@ -6,6 +6,7 @@
 #include <ImGui/imgui_impl_opengl3.h>
 
 #include "imgui_components/imgui_opengl.h"
+#include "imgui_components/ImCoolbar.h"
 
 MainWindow::MainWindow(bool isMultiViewport) {
 
@@ -211,6 +212,66 @@ void MainWindow::CreateMainView() {
                 }
                 ImGui::EndTabItem();
             }
+
+            if (ImGui::BeginTabItem("ImCoolBar")) {
+
+                auto coolbar_button = [](const char* label) -> bool {
+                    float w = ImGui::GetCoolBarItemWidth();
+                    float originScale = ImGui::GetFont()->Scale;
+                    ImGui::GetFont()->Scale = ImGui::GetCoolBarItemScale();
+                    ImGui::PushFont(ImGui::GetFont());
+                    bool res = ImGui::Button(label, ImVec2(w, w));
+                    ImGui::PopFont();
+                    ImGui::GetFont()->Scale = originScale;
+                    return res;
+                    };
+
+                if (ImGui::BeginCoolBar("##CoolBarMain", ImCoolBarFlags_Horizontal, ImVec2(0.5f, 1.0f))) {
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("A")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("B")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("C")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("D")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("E")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("F")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("G")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("H")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("I")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("J")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("K")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("L")) {}
+                    }
+                    if (ImGui::CoolBarItem()) {
+                        if (coolbar_button("M")) {}
+                    }
+                    ImGui::EndCoolBar();
+                }
+
+                ImGui::EndTabItem();
+            }
+
             ImGui::EndTabBar();
         }
         ImGui::End();
