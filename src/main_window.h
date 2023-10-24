@@ -7,6 +7,8 @@
 
 #include <ImGui/imgui.h>
 
+#include <utility>
+
 class MainWindow {
 
     // constructor
@@ -18,8 +20,9 @@ public:
 private:
     GLFWwindow* window = nullptr;
     bool Init(bool isMultiViewport);
-    void Run();
     void Destroy();
+
+    void Run();
     bool isReady = false;
 
     // sub functions
@@ -34,19 +37,29 @@ private:
 
     // constants
 private:
-    const unsigned int SCR_WIDTH = 1000;
-    const unsigned int SCR_HEIGHT = 800;
+    unsigned int SCR_WIDTH = 1000;
+    unsigned int SCR_HEIGHT = 800;
 
     const ImGuiWindowFlags flag = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus;
-    const ImGuiWindowFlags topFlag = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+    const ImGuiWindowFlags topFlag = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
     // variables for layout
 private:
     float menubar_offsetY = 20;
-    float main_width = 760;
+    // float main_width = 760;
+#define main_width (SCR_WIDTH * 0.76f)
     float main_height = SCR_HEIGHT;
 
     ImVec2 window_pos{ 0, 0 };
+
+    // for custom window title bar
+private:
+    bool isDragging = false;
+    bool isMouseDown = false;
+    ImVec2 draggingWindowAnchor;
+    ImVec2 draggingMouseAnchor;
+
+    bool shouldWindowMaximize = false;
 
     // variables
 private:
@@ -54,6 +67,10 @@ private:
 
     float sliderFloat = 0;
     int sliderInt = 0;
+
+    // exposed functions
+public:
+    void setScreenSize(int width, int height);
 };
 
 #endif // !MAIN_WINDOW_H

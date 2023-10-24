@@ -1,3 +1,4 @@
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "main_window.h"
 
 #include <cstdio>
@@ -6,6 +7,26 @@
 #include <ImGui/imgui_impl_opengl3.h>
 
 #include "imgui_components/imgui_opengl.h"
+
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+void hide_taskbar_icon(GLFWwindow* win) {
+
+    auto hwnd = glfwGetWin32Window(win);
+    SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_TOOLWINDOW);
+    // SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_TOOLWINDOW);
+}
+void show_taskbar_icon(GLFWwindow* win) {
+
+    auto hwnd = glfwGetWin32Window(win);
+    SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) ^ WS_EX_TOOLWINDOW);
+}
+void setupWindowStyleNative(GLFWwindow* win) {
+
+    auto hwnd = glfwGetWin32Window(win);
+    // SetWindowLong(hwnd, GWL_STYLE, WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_GROUP);
+    // SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_ACCEPTFILES | WS_EX_APPWINDOW);
+}
 
 MainWindow::MainWindow(bool isMultiViewport) {
 
@@ -23,6 +44,18 @@ static void glfw_error_callback(int error, const char* description) {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
+static void glfw_windowSize_callback(GLFWwindow* window, int width, int height) {
+
+    MainWindow* mw = (MainWindow*)glfwGetWindowUserPointer(window);
+    mw->setScreenSize(width, height);
+}
+
+void MainWindow::setScreenSize(int width, int height) {
+
+    SCR_WIDTH = width;
+    SCR_HEIGHT = height;
+}
+
 bool MainWindow::Init(bool isMultiViewport) {
 
     // glfw initialization
@@ -37,7 +70,8 @@ bool MainWindow::Init(bool isMultiViewport) {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
         // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 
         // glfw window creation
         window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL with ImGui", nullptr, nullptr);
@@ -49,6 +83,12 @@ bool MainWindow::Init(bool isMultiViewport) {
         }
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1); // Enable vsync
+
+        setupWindowStyleNative(window);
+        // calculateWindowBorders();
+
+        glfwSetWindowUserPointer(window, this);
+        glfwSetWindowSizeCallback(window, glfw_windowSize_callback);
     }
 
     // glad initialization
@@ -118,6 +158,7 @@ void MainWindow::Run() {
 
         // ImGui components
         CreateImGuiComponents();
+        // ImGui::ShowDemoWindow();
         ImGui::Render();
 
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -133,6 +174,14 @@ void MainWindow::Run() {
         }
 
         glfwSwapBuffers(window);
+
+        if (shouldWindowMaximize) {
+
+            shouldWindowMaximize = false;
+
+            if (!glfwGetWindowAttrib(window, GLFW_MAXIMIZED)) glfwMaximizeWindow(window);
+            else glfwRestoreWindow(window);
+        }
     }
 }
 
@@ -154,6 +203,13 @@ void MainWindow::CreateImGuiComponents() {
     CreateMainView();
     CreateControlPanel();
     CreateSettingPage();
+
+    if (isDragging) {
+
+        ImVec2 newWindowPos = draggingWindowAnchor + (ImGui::GetMousePos() - draggingMouseAnchor);
+
+        glfwSetWindowPos(window, newWindowPos.x, newWindowPos.y);
+    }
 }
 
 void MainWindow::HandleUserInput() {
@@ -167,14 +223,93 @@ void MainWindow::CreateMenuBar() {
 
     if (ImGui::BeginMainMenuBar()) {
 
+        // calculate window height for other windows
         menubar_offsetY = ImGui::GetWindowHeight();
         main_height = SCR_HEIGHT - menubar_offsetY;
 
-        if (ImGui::MenuItem("Settings")) {
+        // leadings (left)
+        {
+            if (ImGui::MenuItem("Settings")) {
 
-            isSettingPageOpened = !isSettingPageOpened;
+                isSettingPageOpened = !isSettingPageOpened;
+            }
+            ImGui::Separator();
         }
-        ImGui::Separator();
+
+        std::pair<ImVec2, ImVec2> menubarRect = { { ImGui::GetWindowPos().x + ImGui::GetCursorPosX(), ImGui::GetWindowPos().y }, ImGui::GetWindowPos() + ImGui::GetWindowSize() };
+        float rightCursorPosX = ImGui::GetWindowSize().x;
+
+        // trailings (right)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
+
+            // close button
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.76, 0.16, 0.1, 1 });
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.91, 0.19, 0.12, 1 });
+            ImVec2 buttonSize{ ImGui::GetWindowSize().y, ImGui::GetWindowSize().y };
+            rightCursorPosX -= buttonSize.x;
+            menubarRect.second.x -= buttonSize.x;
+            ImGui::SetCursorPosX(rightCursorPosX);
+            if (ImGui::Button("x", buttonSize)) {
+
+                glfwSetWindowShouldClose(window, true);
+            }
+            ImGui::PopStyleColor(2);
+
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0, 0, 0, 0.2 });
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0, 0, 0, 0.3 });
+            {
+                // maximize button
+                rightCursorPosX -= buttonSize.x;
+                menubarRect.second.x -= buttonSize.x;
+                ImGui::SetCursorPosX(rightCursorPosX);
+                if (ImGui::Button("O", buttonSize)) {
+
+                    shouldWindowMaximize = true;
+                }
+
+                // minimize button
+                rightCursorPosX -= buttonSize.x;
+                menubarRect.second.x -= buttonSize.x;
+                ImGui::SetCursorPosX(rightCursorPosX);
+                if (ImGui::Button("-", buttonSize)) {
+
+                    if (!glfwGetWindowAttrib(window, GLFW_ICONIFIED)) glfwIconifyWindow(window);
+                    else glfwRestoreWindow(window);
+                }
+            }
+            ImGui::PopStyleColor(2);
+
+            ImGui::PopStyleColor();
+        }
+
+        // Handle dragging window
+        {
+            if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+
+                if (!isMouseDown && ImGui::IsMouseHoveringRect(menubarRect.first, menubarRect.second) || isDragging) {
+
+                    if (!isDragging) {
+
+                        int w_xpos, w_ypos;
+                        glfwGetWindowPos(window, &w_xpos, &w_ypos);
+                        draggingWindowAnchor = { static_cast<float>(w_xpos), static_cast<float>(w_ypos) };
+                        // printf("%i, %i\n", w_xpos, w_ypos);
+
+                        draggingMouseAnchor = ImGui::GetMousePos();
+                    }
+
+                    isDragging = true;
+                }
+
+                isMouseDown = true;
+            }
+            else {
+
+                isDragging = false;
+                isMouseDown = false;
+            }
+        }
 
         ImGui::EndMainMenuBar();
     }
@@ -182,10 +317,9 @@ void MainWindow::CreateMenuBar() {
 
 void MainWindow::CreateMainView() {
 
+    ImGui::SetNextWindowPos({ window_pos.x, window_pos.y + menubar_offsetY });
+    ImGui::SetNextWindowSize({ main_width, main_height });
     if (ImGui::Begin("main view", 0, flag)) {
-
-        ImGui::SetWindowPos({ window_pos.x, window_pos.y + menubar_offsetY });
-        ImGui::SetWindowSize({ main_width, main_height });
 
         if (ImGui::BeginTabBar("main view tab bar")) {
 
@@ -219,33 +353,49 @@ void MainWindow::CreateMainView() {
 
 void MainWindow::CreateControlPanel() {
 
+    ImGui::SetNextWindowPos({ window_pos.x + main_width, window_pos.y + menubar_offsetY });
+    ImGui::SetNextWindowSize({ SCR_WIDTH - main_width, main_height });
     if (ImGui::Begin("controls", 0, flag)) {
 
-        ImGui::SetWindowPos({ window_pos.x + main_width, window_pos.y + menubar_offsetY });
-        ImGui::SetWindowSize({ SCR_WIDTH - main_width, main_height });
-        {
-            ImGui::NewLine();
-            const char* text = "Controls";
-            ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize(text).x) * 0.5f);
-            ImGui::Text(text);
-            ImGui::NewLine();
+        ImGui::NewLine();
+        const char* text = "Controls";
+        ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize(text).x) * 0.5f);
+        ImGui::Text(text);
+        ImGui::NewLine();
 
-            if (ImGui::Button("btn1", { ImGui::GetContentRegionAvail().x, 0 })) {
+        if (ImGui::Button("btn1", { ImGui::GetContentRegionAvail().x, 0 })) {
 
-                printf("btn1\n");
-            }
-            if (ImGui::Button("Hello World!", { ImGui::GetContentRegionAvail().x, 0 })) {
-
-                printf("Hello World!\n");
-            }
-
-            ImGui::NewLine();
-            const char* text2 = "sliderInt";
-            ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize(text2).x) * 0.5f);
-            ImGui::Text(text2);
-            ImGui::PushItemWidth(-1);
-            ImGui::SliderInt("sliderInt", &sliderInt, 1, 20);
+            printf("btn1\n");
         }
+        if (ImGui::Button("Hello World!", { ImGui::GetContentRegionAvail().x, 0 })) {
+
+            printf("Hello World!\n");
+        }
+        if (ImGui::Button("hide_taskbar_icon", { ImGui::GetContentRegionAvail().x, 0 })) {
+
+            FreeConsole();
+            hide_taskbar_icon(this->window);
+        }
+        if (ImGui::Button("show_taskbar_icon", { ImGui::GetContentRegionAvail().x, 0 })) {
+
+            show_taskbar_icon(this->window);
+        }
+        if (ImGui::Button("print GWL_EXSTYLE", { ImGui::GetContentRegionAvail().x, 0 })) {
+
+            printf("GetWindowLong(hwnd, GWL_EXSTYLE) = %08x\n", GetWindowLong(glfwGetWin32Window(this->window), GWL_EXSTYLE));
+        }
+        if (ImGui::Button("print GWL_STYLE", { ImGui::GetContentRegionAvail().x, 0 })) {
+
+            printf("GetWindowLong(hwnd, GWL_STYLE)   = %08x\n", GetWindowLong(glfwGetWin32Window(this->window), GWL_STYLE));
+        }
+
+        ImGui::NewLine();
+        const char* text2 = "sliderInt";
+        ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize(text2).x) * 0.5f);
+        ImGui::Text(text2);
+        ImGui::PushItemWidth(-1);
+        ImGui::SliderInt("sliderInt", &sliderInt, 1, 20);
+
         ImGui::End();
     }
 }
