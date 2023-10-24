@@ -8,24 +8,20 @@
 
 #include "imgui_components/imgui_opengl.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 void hide_taskbar_icon(GLFWwindow* win) {
 
     auto hwnd = glfwGetWin32Window(win);
     SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_TOOLWINDOW);
-    // SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_TOOLWINDOW);
 }
 void show_taskbar_icon(GLFWwindow* win) {
 
     auto hwnd = glfwGetWin32Window(win);
     SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) ^ WS_EX_TOOLWINDOW);
-}
-void setupWindowStyleNative(GLFWwindow* win) {
-
-    auto hwnd = glfwGetWin32Window(win);
-    // SetWindowLong(hwnd, GWL_STYLE, WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_GROUP);
-    // SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_ACCEPTFILES | WS_EX_APPWINDOW);
 }
 
 MainWindow::MainWindow(bool isMultiViewport) {
@@ -70,10 +66,11 @@ bool MainWindow::Init(bool isMultiViewport) {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
         // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        // glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 
         // glfw window creation
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL with ImGui", nullptr, nullptr);
         if (window == nullptr) {
 
@@ -81,11 +78,19 @@ bool MainWindow::Init(bool isMultiViewport) {
             glfwTerminate();
             return false;
         }
+
+        // set window icon
+        GLFWimage image;
+        image.pixels = stbi_load(PROJECT_DIR "/asset/icon/strawberries.png", &image.width, &image.height, 0, 4);
+        if (image.pixels) {
+
+            glfwSetWindowIcon(window, 1, &image);
+            stbi_image_free(image.pixels);
+        }
+        glfwShowWindow(window);
+
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1); // Enable vsync
-
-        setupWindowStyleNative(window);
-        // calculateWindowBorders();
 
         glfwSetWindowUserPointer(window, this);
         glfwSetWindowSizeCallback(window, glfw_windowSize_callback);
@@ -175,13 +180,7 @@ void MainWindow::Run() {
 
         glfwSwapBuffers(window);
 
-        if (shouldWindowMaximize) {
-
-            shouldWindowMaximize = false;
-
-            if (!glfwGetWindowAttrib(window, GLFW_MAXIMIZED)) glfwMaximizeWindow(window);
-            else glfwRestoreWindow(window);
-        }
+        HandleTitleBarEvents();
     }
 }
 
@@ -203,13 +202,6 @@ void MainWindow::CreateImGuiComponents() {
     CreateMainView();
     CreateControlPanel();
     CreateSettingPage();
-
-    if (isDragging) {
-
-        ImVec2 newWindowPos = draggingWindowAnchor + (ImGui::GetMousePos() - draggingMouseAnchor);
-
-        glfwSetWindowPos(window, newWindowPos.x, newWindowPos.y);
-    }
 }
 
 void MainWindow::HandleUserInput() {
@@ -283,9 +275,16 @@ void MainWindow::CreateMenuBar() {
             ImGui::PopStyleColor();
         }
 
-        // Handle dragging window
+        // Handle mouse event
         {
-            if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            bool isMouseHovering = ImGui::IsMouseHoveringRect(menubarRect.first, menubarRect.second);
+            // Handle double click titlebar maximize
+            if (isMouseHovering && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+
+                shouldWindowMaximize = true;
+            }
+            // Handle dragging window
+            else if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
 
                 if (!isMouseDown && ImGui::IsMouseHoveringRect(menubarRect.first, menubarRect.second) || isDragging) {
 
@@ -294,7 +293,6 @@ void MainWindow::CreateMenuBar() {
                         int w_xpos, w_ypos;
                         glfwGetWindowPos(window, &w_xpos, &w_ypos);
                         draggingWindowAnchor = { static_cast<float>(w_xpos), static_cast<float>(w_ypos) };
-                        // printf("%i, %i\n", w_xpos, w_ypos);
 
                         draggingMouseAnchor = ImGui::GetMousePos();
                     }
@@ -407,5 +405,23 @@ void MainWindow::CreateSettingPage() {
         ImGui::SliderFloat("sliderFloat", &sliderFloat, 0.001f, 0.01f, "%.3f");
 
         ImGui::End();
+    }
+}
+
+void MainWindow::HandleTitleBarEvents() {
+
+    if (shouldWindowMaximize) {
+
+        shouldWindowMaximize = false;
+
+        if (!glfwGetWindowAttrib(window, GLFW_MAXIMIZED)) glfwMaximizeWindow(window);
+        else glfwRestoreWindow(window);
+    }
+
+    if (isDragging) {
+
+        ImVec2 newWindowPos = draggingWindowAnchor + (ImGui::GetMousePos() - draggingMouseAnchor);
+
+        glfwSetWindowPos(window, newWindowPos.x, newWindowPos.y);
     }
 }

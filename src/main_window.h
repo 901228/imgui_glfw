@@ -61,6 +61,8 @@ private:
 
     bool shouldWindowMaximize = false;
 
+    void HandleTitleBarEvents();
+
     // variables
 private:
     bool isSettingPageOpened = false;
