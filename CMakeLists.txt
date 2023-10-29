@@ -84,7 +84,7 @@ install(TARGETS ${PROJECT_NAME}
     CONFIGURATIONS Debug
     RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/Debug)
 install(TARGETS ${PROJECT_NAME}
-    CONFIGURATIONS Release
+    CONFIGURATIONS Release MinSizeRel RelWithDebInfo
     RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/Release)
 
 # post processing
@@ -92,7 +92,7 @@ if(WIN32)
     # Windows
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${PROJECT_SOURCE_DIR}/lib/$<CONFIG>/bin" "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${PROJECT_SOURCE_DIR}/lib/$<$<CONFIG:Debug>:Debug>$<$<NOT:$<CONFIG:Debug>>:Release>/bin" "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
         VERBATIM)
 elseif(UNIX AND NOT APPLE)
 # Linux
