@@ -25,7 +25,16 @@ private:
     void Run();
     bool isReady = false;
 
-    // sub functions
+    // wrap glfw functions into ImVec2
+private:
+    ImVec2 GetWindowPos() const;
+    ImVec2 GetWindowSize() const;
+    ImVec2 GetMouseLocalPos() const;
+    ImVec2 GetMouseGlobalPos() const;
+    bool IsPosCorner(int xpos, int ypos) const;
+    bool IsPosTop(int ypos) const;
+
+    // imgui components
 private:
     void CreateImGuiComponents();
     void HandleUserInput();
@@ -54,14 +63,17 @@ private:
 
     // for custom window title bar
 private:
-    bool isDragging = false;
-    bool isMouseDown = false;
+    bool isDraggingWindow = false;
+    bool isDraggingMouseDown = false;
     ImVec2 draggingWindowAnchor;
     ImVec2 draggingMouseAnchor;
+    void HandleTitleBarEvents();
 
     bool shouldWindowMaximize = false;
-
-    void HandleTitleBarEvents();
+    bool readyToShowShadowOfMaximized = false;
+    int shadowMonitor = 0;
+    GLFWwindow* shadowWindow = nullptr;
+    void RenderShadowWindow();
 
     // variables
 private:
@@ -72,7 +84,11 @@ private:
 
     // exposed functions
 public:
+    static void glfw_error_callback(int error, const char* description);
+    static void glfw_windowSize_callback(GLFWwindow* window, int width, int height);
     void setScreenSize(int width, int height);
+    static void glfw_windowPos_callback(GLFWwindow* window, int xpos, int ypos);
+    void setScreenPos(int xpos, int ypos);
 };
 
 #endif // !MAIN_WINDOW_H

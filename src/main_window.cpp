@@ -2,6 +2,8 @@
 #include "main_window.h"
 
 #include <cstdio>
+#include <string>
+#include <set>
 
 #include <ImGui/imgui_impl_glfw.h>
 #include <ImGui/imgui_impl_opengl3.h>
@@ -13,16 +15,6 @@
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
-void hide_taskbar_icon(GLFWwindow* win) {
-
-    auto hwnd = glfwGetWin32Window(win);
-    SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_TOOLWINDOW);
-}
-void show_taskbar_icon(GLFWwindow* win) {
-
-    auto hwnd = glfwGetWin32Window(win);
-    SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) ^ WS_EX_TOOLWINDOW);
-}
 
 MainWindow::MainWindow(bool isMultiViewport) {
 
@@ -35,21 +27,125 @@ MainWindow::~MainWindow() {
     if (isReady) Destroy();
 }
 
-static void glfw_error_callback(int error, const char* description) {
+void MainWindow::glfw_error_callback(int error, const char* description) {
 
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
-static void glfw_windowSize_callback(GLFWwindow* window, int width, int height) {
+void MainWindow::glfw_windowSize_callback(GLFWwindow* window, int width, int height) {
 
     MainWindow* mw = (MainWindow*)glfwGetWindowUserPointer(window);
-    mw->setScreenSize(width, height);
+    if (window == mw->window) mw->setScreenSize(width, height);
 }
 
 void MainWindow::setScreenSize(int width, int height) {
 
     SCR_WIDTH = width;
     SCR_HEIGHT = height;
+}
+
+void MainWindow::glfw_windowPos_callback(GLFWwindow* window, int xpos, int ypos) {
+
+    MainWindow* mw = (MainWindow*)glfwGetWindowUserPointer(window);
+    if (window == mw->window) mw->setScreenPos(xpos, ypos);
+}
+
+void MainWindow::setScreenPos(int xpos, int ypos) {
+
+    // restore window when drag window from the top
+    if (glfwGetWindowAttrib(window, GLFW_MAXIMIZED) && !IsPosCorner(xpos, ypos)) {
+
+        // get mouse pos
+        ImVec2 mouse = GetMouseLocalPos();
+
+        // get screen size
+        ImVec2 screenSize = GetWindowSize();
+
+        glfwRestoreWindow(window);
+
+        // set window to cursor
+        ImVec2 windowSize = GetWindowSize();
+
+        // calculate the relative distance from lefttop of the window and the mouse cursor
+        ImVec2 relativeDistance = (mouse / screenSize) * windowSize;
+
+        // reset the anchors of dragging window
+        draggingWindowAnchor = GetMouseGlobalPos() - relativeDistance;
+        draggingMouseAnchor = ImGui::GetMousePos();
+        glfwSetWindowPos(window, static_cast<int>(draggingWindowAnchor.x), static_cast<int>(draggingWindowAnchor.y));
+    }
+    else {
+
+        // drag to the top
+        if (!glfwGetWindowAttrib(window, GLFW_MAXIMIZED) && IsPosTop(GetMouseGlobalPos().y)) {
+
+            readyToShowShadowOfMaximized = true;
+        }
+        else readyToShowShadowOfMaximized = false;
+    }
+}
+
+ImVec2 MainWindow::GetWindowPos() const {
+
+    int xpos, ypos;
+    glfwGetWindowPos(window, &xpos, &ypos);
+
+    return { static_cast<float>(xpos), static_cast<float>(ypos) };
+}
+
+ImVec2 MainWindow::GetWindowSize() const {
+
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+
+    return { static_cast<float>(width), static_cast<float>(height) };
+}
+
+ImVec2 MainWindow::GetMouseLocalPos() const {
+
+    double cursorXpos, cursorYpos;
+    glfwGetCursorPos(window, &cursorXpos, &cursorYpos);
+
+    return { static_cast<float>(cursorXpos), static_cast<float>(cursorYpos) };
+}
+
+ImVec2 MainWindow::GetMouseGlobalPos() const {
+
+    double cursorXpos, cursorYpos;
+    glfwGetCursorPos(window, &cursorXpos, &cursorYpos);
+
+    int xpos, ypos;
+    glfwGetWindowPos(window, &xpos, &ypos);
+
+    return { static_cast<float>(xpos + cursorXpos), static_cast<float>(ypos + cursorYpos) };
+}
+
+bool MainWindow::IsPosCorner(int xpos, int ypos) const {
+
+    int monitorCounts;
+    GLFWmonitor** monitors = glfwGetMonitors(&monitorCounts);
+    for (int i = 0; i < monitorCounts; i++) {
+
+        int monitorXpos, monitorYpos;
+        glfwGetMonitorPos(monitors[i], &monitorXpos, &monitorYpos);
+        if (xpos == monitorXpos && ypos == monitorYpos) return true;
+    }
+
+    return false;
+}
+
+bool MainWindow::IsPosTop(int ypos) const {
+
+    int monitorCounts;
+    GLFWmonitor** monitors = glfwGetMonitors(&monitorCounts);
+    for (int i = 0; i < monitorCounts; i++) {
+
+        int monitorXpos, monitorYpos;
+        glfwGetMonitorPos(monitors[i], &monitorXpos, &monitorYpos);
+        if (ypos == monitorYpos) return true;
+    }
+
+    return false;
 }
 
 bool MainWindow::Init(bool isMultiViewport) {
@@ -68,6 +164,8 @@ bool MainWindow::Init(bool isMultiViewport) {
         // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         // glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+        glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+        glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 
         // glfw window creation
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -94,6 +192,7 @@ bool MainWindow::Init(bool isMultiViewport) {
 
         glfwSetWindowUserPointer(window, this);
         glfwSetWindowSizeCallback(window, glfw_windowSize_callback);
+        glfwSetWindowPosCallback(window, glfw_windowPos_callback);
     }
 
     // glad initialization
@@ -110,7 +209,9 @@ bool MainWindow::Init(bool isMultiViewport) {
         glEnable(GL_DEPTH_TEST);
 
         glEnable(GL_BLEND);
+        glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX); // rgb is add, alpha is max
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
 
         // glEnable(GL_PROGRAM_POINT_SIZE);
     }
@@ -124,6 +225,7 @@ bool MainWindow::Init(bool isMultiViewport) {
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
         if (isMultiViewport)
             io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable MultiViewports
+        io.ConfigViewportsNoTaskBarIcon = true;
 
         // Setup Dear ImGui style
         ImGui::StyleColorsLight();
@@ -145,8 +247,38 @@ bool MainWindow::Init(bool isMultiViewport) {
         }
     }
 
+    // monitors' info
+    if (false) {
+
+        int monitorCounts;
+        GLFWmonitor** monitors = glfwGetMonitors(&monitorCounts);
+        for (int i = 0; i < monitorCounts; i++) {
+
+            float xscale, yscale;
+            glfwGetMonitorContentScale(monitors[i], &xscale, &yscale);
+            printf("scale: (%g, %g)\n", xscale, yscale);
+
+            printf("name: %s\n", glfwGetMonitorName(monitors[i]));
+
+            int pwidth, pheight;
+            glfwGetMonitorPhysicalSize(monitors[i], &pwidth, &pheight);
+            printf("phsical size: (%i, %i)\n", pwidth, pheight);
+
+            int pxpos = 0, pypos = 0;
+            glfwGetMonitorPos(monitors[i], &pxpos, &pypos);
+            printf("pos: (%i, %i)\n", pxpos, pypos);
+
+            int wwidth, wheight, wxpos, wypos;
+            glfwGetMonitorWorkarea(monitors[i], &wxpos, &wypos, &wwidth, &wheight);
+            printf("work size: (%i, %i)\n", wwidth, wheight);
+            printf("work pos: (%i, %i)\n\n", wxpos, wypos);
+        }
+    }
+
     return true;
 }
+
+static std::set<unsigned int> transparentBackgroundSet;
 
 void MainWindow::Run() {
 
@@ -154,6 +286,10 @@ void MainWindow::Run() {
     while (!glfwWindowShouldClose(window)) {
 
         glfwPollEvents();
+
+        RenderShadowWindow();
+
+        glfwMakeContextCurrent(window);
         HandleUserInput();
 
         // Start the Dear ImGui frame
@@ -167,7 +303,7 @@ void MainWindow::Run() {
         ImGui::Render();
 
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -279,16 +415,15 @@ void MainWindow::CreateMenuBar() {
         {
             bool isMouseHovering = ImGui::IsMouseHoveringRect(menubarRect.first, menubarRect.second);
             // Handle double click titlebar maximize
-            if (isMouseHovering && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-
-                shouldWindowMaximize = true;
-            }
+            if (isMouseHovering && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) shouldWindowMaximize = true;
             // Handle dragging window
             else if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
 
-                if (!isMouseDown && ImGui::IsMouseHoveringRect(menubarRect.first, menubarRect.second) || isDragging) {
+                if (!isDraggingMouseDown && isMouseHovering || isDraggingWindow) {
 
-                    if (!isDragging) {
+                    if (!isDraggingWindow) {
+
+                        isDraggingMouseDown = true;
 
                         int w_xpos, w_ypos;
                         glfwGetWindowPos(window, &w_xpos, &w_ypos);
@@ -297,15 +432,15 @@ void MainWindow::CreateMenuBar() {
                         draggingMouseAnchor = ImGui::GetMousePos();
                     }
 
-                    isDragging = true;
+                    isDraggingWindow = true;
                 }
 
-                isMouseDown = true;
+                isDraggingMouseDown = true;
             }
             else {
 
-                isDragging = false;
-                isMouseDown = false;
+                isDraggingWindow = false;
+                isDraggingMouseDown = false;
             }
         }
 
@@ -369,23 +504,6 @@ void MainWindow::CreateControlPanel() {
 
             printf("Hello World!\n");
         }
-        if (ImGui::Button("hide_taskbar_icon", { ImGui::GetContentRegionAvail().x, 0 })) {
-
-            FreeConsole();
-            hide_taskbar_icon(this->window);
-        }
-        if (ImGui::Button("show_taskbar_icon", { ImGui::GetContentRegionAvail().x, 0 })) {
-
-            show_taskbar_icon(this->window);
-        }
-        if (ImGui::Button("print GWL_EXSTYLE", { ImGui::GetContentRegionAvail().x, 0 })) {
-
-            printf("GetWindowLong(hwnd, GWL_EXSTYLE) = %08x\n", GetWindowLong(glfwGetWin32Window(this->window), GWL_EXSTYLE));
-        }
-        if (ImGui::Button("print GWL_STYLE", { ImGui::GetContentRegionAvail().x, 0 })) {
-
-            printf("GetWindowLong(hwnd, GWL_STYLE)   = %08x\n", GetWindowLong(glfwGetWin32Window(this->window), GWL_STYLE));
-        }
 
         ImGui::NewLine();
         const char* text2 = "sliderInt";
@@ -418,10 +536,101 @@ void MainWindow::HandleTitleBarEvents() {
         else glfwRestoreWindow(window);
     }
 
-    if (isDragging) {
+    if (isDraggingWindow) {
 
         ImVec2 newWindowPos = draggingWindowAnchor + (ImGui::GetMousePos() - draggingMouseAnchor);
 
         glfwSetWindowPos(window, newWindowPos.x, newWindowPos.y);
+    }
+
+    // maximize window while mouse release
+    if (readyToShowShadowOfMaximized && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+
+        readyToShowShadowOfMaximized = false;
+        shouldWindowMaximize = true;
+    }
+}
+
+void MainWindow::RenderShadowWindow() {
+
+    // show shadow
+    if (readyToShowShadowOfMaximized) {
+
+        int monitorCounts;
+        GLFWmonitor** monitors = glfwGetMonitors(&monitorCounts);
+        int monitorWidth = 0, monitorHeight = 0;
+        int monitorXpos = 0, monitorYpos = 0;
+        float monitorXscale = 0, monitorYscale = 0;
+        ImVec2 mouse = GetMouseGlobalPos();
+        int i;
+        for (i = 0; i < monitorCounts; i++) {
+
+            glfwGetMonitorWorkarea(monitors[i], &monitorXpos, &monitorYpos, &monitorWidth, &monitorHeight);
+            glfwGetMonitorContentScale(monitors[i], &monitorXscale, &monitorYscale);
+            if (mouse.x >= monitorXpos && mouse.x < monitorXpos + monitorWidth && mouse.y >= monitorYpos && mouse.y < monitorYpos + monitorHeight) {
+
+                break;
+            }
+        }
+
+        if (!shadowWindow) {
+
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+            glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+            glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+            glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+            glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_FALSE);
+            glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
+
+            // glfw window creation
+            shadowWindow = glfwCreateWindow(monitorWidth / monitorXscale, monitorHeight / monitorYscale, "shadow", nullptr, nullptr);
+            glfwSetWindowPos(shadowWindow, monitorXpos, monitorYpos);
+
+            LONG ex_style = ::GetWindowLong(glfwGetWin32Window(shadowWindow), GWL_EXSTYLE);
+            ex_style &= ~WS_EX_APPWINDOW;
+            ex_style |= WS_EX_TOOLWINDOW;
+            ::SetWindowLong(glfwGetWin32Window(shadowWindow), GWL_EXSTYLE, ex_style);
+        }
+
+        if (i != shadowMonitor) {
+
+            glfwHideWindow(shadowWindow);
+
+            shadowMonitor = i;
+            glfwSetWindowPos(shadowWindow, monitorXpos, monitorYpos);
+            glfwSetWindowSize(shadowWindow, monitorWidth, monitorHeight);
+        }
+
+        if (!glfwGetWindowAttrib(shadowWindow, GLFW_VISIBLE)) glfwShowWindow(shadowWindow);
+
+        glfwMakeContextCurrent(shadowWindow);
+
+        glClearColor(0.0f, 0.0f, 0.0f, 0.3f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // render opengl
+        if (false) {
+            glUseProgram(0);
+            glColor3f(0.3f, 0.8f, 1.0f);
+            glLineWidth(10);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glBegin(GL_QUADS);
+            {
+                glVertex2f(-1, 1);
+                glVertex2f(1, 1);
+                glVertex2f(1, -1);
+                glVertex2f(-1, -1);
+            }
+            glEnd();
+        }
+
+        glfwSwapBuffers(shadowWindow);
+
+        glfwFocusWindow(window);
+    }
+    else {
+
+        if (shadowWindow) glfwHideWindow(shadowWindow);
     }
 }

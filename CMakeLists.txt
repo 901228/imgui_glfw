@@ -7,7 +7,7 @@ set(LIB_DIR_D ${PROJECT_SOURCE_DIR}/lib/Debug/lib)
 set(LIB_DIR ${PROJECT_SOURCE_DIR}/lib/Release/lib)
 
 set(CMAKE_CXX_STANDARD 20)
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /subsystem:windows /ENTRY:mainCRTStartup")
+# SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /subsystem:windows /ENTRY:mainCRTStartup")
 
 include_directories(${INCLUDE_DIR})
 
