@@ -13,8 +13,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+#endif
 
 MainWindow::MainWindow(bool isMultiViewport) {
 
@@ -127,7 +129,8 @@ bool MainWindow::IsPosCorner(int xpos, int ypos) const {
     for (int i = 0; i < monitorCounts; i++) {
 
         int monitorXpos, monitorYpos;
-        glfwGetMonitorPos(monitors[i], &monitorXpos, &monitorYpos);
+        // glfwGetMonitorPos(monitors[i], &monitorXpos, &monitorYpos);
+        glfwGetMonitorWorkarea(monitors[i], &monitorXpos, &monitorYpos, nullptr, nullptr);
         if (xpos == monitorXpos && ypos == monitorYpos) return true;
     }
 
@@ -141,7 +144,8 @@ bool MainWindow::IsPosTop(int ypos) const {
     for (int i = 0; i < monitorCounts; i++) {
 
         int monitorXpos, monitorYpos;
-        glfwGetMonitorPos(monitors[i], &monitorXpos, &monitorYpos);
+        // glfwGetMonitorPos(monitors[i], &monitorXpos, &monitorYpos);
+        glfwGetMonitorWorkarea(monitors[i], &monitorXpos, &monitorYpos, nullptr, nullptr);
         if (ypos == monitorYpos) return true;
     }
 
@@ -416,7 +420,7 @@ void MainWindow::CreateMenuBar() {
             bool isMouseHovering = ImGui::IsMouseHoveringRect(menubarRect.first, menubarRect.second);
             // Handle double click titlebar maximize
             if (isMouseHovering && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) shouldWindowMaximize = true;
-            // Handle dragging window
+                // Handle dragging window
             else if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
 
                 if (!isDraggingMouseDown && isMouseHovering || isDraggingWindow) {
@@ -587,10 +591,12 @@ void MainWindow::RenderShadowWindow() {
             shadowWindow = glfwCreateWindow(monitorWidth / monitorXscale, monitorHeight / monitorYscale, "shadow", nullptr, nullptr);
             glfwSetWindowPos(shadowWindow, monitorXpos, monitorYpos);
 
+#ifdef _WIN32
             LONG ex_style = ::GetWindowLong(glfwGetWin32Window(shadowWindow), GWL_EXSTYLE);
             ex_style &= ~WS_EX_APPWINDOW;
             ex_style |= WS_EX_TOOLWINDOW;
             ::SetWindowLong(glfwGetWin32Window(shadowWindow), GWL_EXSTYLE, ex_style);
+#endif
         }
 
         if (i != shadowMonitor) {
