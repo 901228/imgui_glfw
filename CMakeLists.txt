@@ -5,6 +5,7 @@ project(imgui_glfw)
 set(CMAKE_CXX_STANDARD 20)
 add_definitions("-D_XKEYCHECK_H")
 add_definitions(-DPROJECT_DIR="${PROJECT_SOURCE_DIR}")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # paths
 set(SRC_DIR ${PROJECT_SOURCE_DIR}/src)
